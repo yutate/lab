@@ -301,6 +301,12 @@ function normalize(allocation){
   return out;
 }
 function diffTotal(a,b){return Object.keys(a).reduce((sum,k)=>sum+Math.abs((a[k]||0)-(b[k]||0)),0)}
+function isStable(log){
+  if(log.length < 3) return false;
+  const last = log[log.length-1].diff_total;
+  const prev = log[log.length-2].diff_total;
+  return Math.abs(last - prev) <= 2;
+}
 
 function applyConstraints(rawNext, previous, policy){
   let constrained = {};
@@ -374,7 +380,7 @@ async function runNegotiationLoop(){
       finalResults = results;
       finalAllocation = constrainedNext;
 
-      if(diff <= 2){
+      if(diff <= 2 && i >= 2){
         status = 'Converged';
         allocation = constrainedNext;
         break;
@@ -382,10 +388,12 @@ async function runNegotiationLoop(){
 
       allocation = constrainedNext;
 
-      if(i===5){status='Not Converged'}
+      if(i === 5){
+        status = isStable(loopLog) ? 'Stable Trade-off' : 'Not Converged';
+      }
     }
 
-    const readiness = buildReadiness(status, finalResults, finalAllocation, policy);
+    const readiness = buildReadiness(status, finalResults, finalAllocation, policy, loopLog);
 
     lastExport = {
       export_type:'adcp_execution_lab_v1_negotiation_result',
@@ -505,11 +513,26 @@ function normalizeChannel(name){
   if(/tiktok|tik tok|ティック/.test(t))return'TikTok';
   return String(name).replace(/\s*Agent\s*/i,'').trim();
 }
-function buildReadiness(status, results, allocation, policy){
-  const desc = status === 'Converged'
-    ? `交渉は収束しました。Final Allocation: ${Object.entries(allocation).map(([k,v])=>`${k} ${v}%`).join(' / ')}`
-    : `交渉は収束していません。Human Reviewが必要です。`;
-  return {status, description:desc, policy_note:policy.note, generated_at:new Date().toISOString()};
+function buildReadiness(status, results, allocation, policy, loopLog){
+  const finalDiff = loopLog.length ? loopLog[loopLog.length-1].diff_total : null;
+  const descMap = {
+    'Converged':       `交渉は収束しました。Final Allocation: ${Object.entries(allocation).map(([k,v])=>`${k} ${v}%`).join(' / ')}`,
+    'Stable Trade-off':'交渉は均衡状態に達しました（複数の意図が競合）。Human Reviewで最終判断してください。',
+    'Not Converged':   '交渉は収束せず、異常な状態です。Intentや制約を見直してください。'
+  };
+  const reasonMap = {
+    'Converged':       'converged',
+    'Stable Trade-off':'competing intents',
+    'Not Converged':   'failed to converge'
+  };
+  return {
+    status,
+    reason: reasonMap[status] || 'unknown',
+    diff_final: finalDiff,
+    description: descMap[status] || '状態不明',
+    policy_note: policy.note,
+    generated_at: new Date().toISOString()
+  };
 }
 function summarizeBrief(brief){
   return {
@@ -539,7 +562,8 @@ function renderSummary(brief,strategy,finalIntent,allocatorIntent,executionInten
 function renderReadiness(r){
   const el=document.getElementById('readinessStatus');
   el.textContent=r.status;
-  el.className='status '+(r.status==='Converged'?'ready':'not');
+  const cls = r.status==='Converged' ? 'ready' : r.status==='Stable Trade-off' ? 'adjust' : 'not';
+  el.className='status '+cls;
   document.getElementById('readinessDesc').textContent=r.description;
   document.getElementById('readinessBox').classList.add('on');
 }
