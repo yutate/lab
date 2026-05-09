@@ -145,12 +145,12 @@ button:hover{transform:translateY(-1px);filter:brightness(1.08)}button:disabled{
   </section>
 
   <section class="agent-grid" id="agentResults"></section>
-  <div class="footer-note">Node server required: http://127.0.0.1:3000 / No live buying. No external real API call.</div>
+  <div class="footer-note">Node server required: https://lab-production-d6e6.up.railway.app / No live buying. No external real API call.</div>
 </main>
 
 <script>
 let lastExport = null;
-const AGENT_BASE_URL = "http://127.0.0.1:3000";
+const AGENT_BASE_URL = "https://lab-production-d6e6.up.railway.app";
 
 function showError(msg){const e=document.getElementById('errorBox');e.textContent=msg;e.classList.add('on')}
 function clearError(){const e=document.getElementById('errorBox');e.textContent='';e.classList.remove('on')}
