@@ -61,10 +61,10 @@ button:hover{transform:translateY(-1px);filter:brightness(1.08)}button:disabled{
 <header>
   <div class="header-inner">
     <div>
-      <div class="title">AdCP Execution Lab v1.0</div>
-      <div class="subtitle">A2A Agent Intent / Weighted Negotiation / Intent-aware Constraints / Convergence</div>
+      <div class="title">AdCP Execution Lab v1.1</div>
+      <div class="subtitle">A2A Agent Intent / Weighted Negotiation / Intent Merge / Convergence</div>
     </div>
-    <div class="badge">LAB v1.0 / A2A LOCAL / CONVERGED</div>
+    <div class="badge">LAB v1.1 / INTENT MERGE / A2A</div>
   </div>
 </header>
 
@@ -145,12 +145,12 @@ button:hover{transform:translateY(-1px);filter:brightness(1.08)}button:disabled{
   </section>
 
   <section class="agent-grid" id="agentResults"></section>
-  <div class="footer-note">Node server required: https://lab-production-d6e6.up.railway.app / No live buying. No external real API call.</div>
+  <div class="footer-note">Node server required: http://127.0.0.1:3000 / No live buying. No external real API call.</div>
 </main>
 
 <script>
 let lastExport = null;
-const AGENT_BASE_URL = "https://lab-production-d6e6.up.railway.app";
+const AGENT_BASE_URL = "http://127.0.0.1:3000";
 
 function showError(msg){const e=document.getElementById('errorBox');e.textContent=msg;e.classList.add('on')}
 function clearError(){const e=document.getElementById('errorBox');e.textContent='';e.classList.remove('on')}
@@ -163,6 +163,22 @@ async function callAgent(path, payload){
   });
   if(!res.ok) throw new Error(path + " failed: " + res.status);
   return await res.json();
+}
+
+function mergeIntent(allocatorIntent, executionIntent){
+  if(!allocatorIntent) return executionIntent;
+  if(!executionIntent) return allocatorIntent;
+  if(allocatorIntent === executionIntent) return allocatorIntent;
+  const map = {
+    "impulse+comparison":      "impulse_comparison",
+    "comparison+impulse":      "impulse_comparison",
+    "conversion_like+comparison": "conversion_balanced",
+    "comparison+conversion_like": "conversion_balanced",
+    "learning+comparison":     "learning_comparison",
+    "comparison+learning":     "learning_comparison"
+  };
+  const key = `${allocatorIntent}+${executionIntent}`;
+  return map[key] || "balanced";
 }
 
 function getIntentPolicy(intentType){
@@ -201,6 +217,27 @@ function getIntentPolicy(intentType){
       minFloor: { Google:20, Meta:20, YouTube:10, TikTok:15 },
       deltaLimit: { Google:8, Meta:6, YouTube:6, TikTok:5 },
       note: "標準バランス"
+    },
+    impulse_comparison: {
+      weight: { Google:1.0, Meta:1.1, YouTube:1.0, TikTok:1.15 },
+      maxCap: { Google:38, Meta:36, YouTube:25, TikTok:28 },
+      minFloor: { Google:20, Meta:22, YouTube:12, TikTok:16 },
+      deltaLimit: { Google:6, Meta:6, YouTube:5, TikTok:6 },
+      note: "衝動×比較のハイブリッド。TikTokとMetaを強めつつ、YouTubeの比較支援も維持"
+    },
+    conversion_balanced: {
+      weight: { Google:1.15, Meta:1.05, YouTube:0.85, TikTok:0.85 },
+      maxCap: { Google:46, Meta:34, YouTube:24, TikTok:22 },
+      minFloor: { Google:24, Meta:21, YouTube:10, TikTok:12 },
+      deltaLimit: { Google:7, Meta:6, YouTube:5, TikTok:5 },
+      note: "CV×比較のハイブリッド。Googleを主軸にしつつ、MetaでCVを補完する"
+    },
+    learning_comparison: {
+      weight: { Google:0.95, Meta:1.05, YouTube:1.15, TikTok:0.85 },
+      maxCap: { Google:34, Meta:33, YouTube:32, TikTok:20 },
+      minFloor: { Google:18, Meta:20, YouTube:16, TikTok:12 },
+      deltaLimit: { Google:5, Meta:5, YouTube:6, TikTok:4 },
+      note: "学習×比較のハイブリッド。YouTubeとMetaで理解と検討を厚くする"
     }
   };
   return policies[intentType] || policies.balanced;
@@ -245,8 +282,11 @@ async function runNegotiationLoop(){
     if(rawStrategy){try{strategy=JSON.parse(rawStrategy)}catch(e){throw new Error('Strategy Transfer JSONのparseに失敗しました: '+e.message)}}
     else{strategy=buildFallbackStrategy()}
 
-    const intentType = document.getElementById('intentType').value || brief.intent_type || strategy.intent_type || 'balanced';
-    const policy = getIntentPolicy(intentType);
+    const executionIntent = document.getElementById('intentType').value || brief.intent_type || 'balanced';
+    const allocatorIntent = strategy.intent_type || null;
+    const finalIntent = mergeIntent(allocatorIntent, executionIntent);
+    const intentType = finalIntent; // 後方互換
+    const policy = getIntentPolicy(finalIntent);
 
     const initialAllocation = parseStrategyAllocation(strategy);
     let allocation = {...initialAllocation};
@@ -268,7 +308,9 @@ async function runNegotiationLoop(){
 
       loopLog.push({
         step:i+1,
-        intent_type:intentType,
+        intent_type:finalIntent,
+        allocator_intent:allocatorIntent,
+        execution_intent:executionIntent,
         allocation:{...allocation},
         agent_proposals:results.map(r=>({
           agent:r.agent,
@@ -308,7 +350,9 @@ async function runNegotiationLoop(){
       generated_at:new Date().toISOString(),
       brief_summary:summarizeBrief(brief),
       strategy_transfer:strategy,
-      intent_type:intentType,
+      intent_type:finalIntent,
+      allocator_intent:allocatorIntent,
+      execution_intent:executionIntent,
       policy,
       initial_allocation:initialAllocation,
       final_allocation:finalAllocation,
@@ -318,7 +362,7 @@ async function runNegotiationLoop(){
       source_brief:brief
     };
 
-    renderSummary(brief, strategy, intentType);
+    renderSummary(brief, strategy, finalIntent, allocatorIntent, executionIntent);
     renderReadiness(readiness);
     renderAllocation('initialAlloc', initialAllocation, 'Allocator');
     renderAllocation('finalAlloc', finalAllocation, 'Negotiated');
@@ -431,7 +475,7 @@ function summarizeBrief(brief){
     preferred_channels: brief.preferred_channels || []
   };
 }
-function renderSummary(brief,strategy,intentType){
+function renderSummary(brief,strategy,finalIntent,allocatorIntent,executionIntent){
   const s=summarizeBrief(brief);
   document.getElementById('summary').innerHTML=`
     <div class="row"><div class="key">Status</div><div class="val">Loaded</div></div>
@@ -440,7 +484,9 @@ function renderSummary(brief,strategy,intentType){
     <div class="row"><div class="key">Target</div><div class="val">${escapeHtml(s.target||'—')}</div></div>
     <div class="row"><div class="key">Budget</div><div class="val">${escapeHtml(s.budget||'—')}</div></div>
     <div class="row"><div class="key">KPI</div><div class="val">${escapeHtml((s.kpi||[]).map(k=>`${k.metric}: ${k.target}`).join(' / ')||'—')}</div></div>
-    <div class="row"><div class="key">Intent</div><div class="val">${escapeHtml(intentType)}</div></div>
+    <div class="row"><div class="key">Final Intent</div><div class="val" style="font-weight:900;color:var(--accent)">${escapeHtml(finalIntent)}</div></div>
+    <div class="row"><div class="key">Allocator Intent</div><div class="val">${escapeHtml(allocatorIntent||'—')}</div></div>
+    <div class="row"><div class="key">Execution Intent</div><div class="val">${escapeHtml(executionIntent||'—')}</div></div>
     <div class="row"><div class="key">Strategy</div><div class="val">${escapeHtml(strategy.strategy_type||'—')} / confidence: ${escapeHtml(String(strategy.confidence||'—'))}</div></div>
   `;
 }
