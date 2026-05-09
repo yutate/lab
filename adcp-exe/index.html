@@ -55,6 +55,11 @@ button:hover{transform:translateY(-1px);filter:brightness(1.08)}button:disabled{
 .adjust-list,.loop-list{display:grid;gap:10px;margin-top:12px}.item{background:var(--surface2);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px 14px}.item-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}.item-title{font-weight:900}.item-text{font-size:13px;color:var(--muted)}
 .severity{border-radius:999px;padding:3px 8px;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}.medium{color:var(--yellow);border:1px solid rgba(255,184,0,.35);background:rgba(255,184,0,.1)}.high{color:var(--red);border:1px solid rgba(255,77,109,.35);background:rgba(255,77,109,.1)}.low{color:var(--blue);border:1px solid rgba(0,212,255,.35);background:rgba(0,212,255,.1)}
 .footer-note{color:var(--dim);font-size:12px;text-align:center;margin-top:8px}
+.decision-card{background:var(--surface);border:1px solid rgba(255,184,0,.3);border-radius:14px;overflow:hidden;padding:16px}
+.decision-label{font-size:13px;font-weight:900;color:var(--yellow);margin-bottom:8px}
+.decision-alloc{font-size:12px;color:var(--text);margin-bottom:8px;line-height:1.8}
+.decision-meta{font-size:11px;color:var(--muted);line-height:1.7}
+.decision-meta strong{color:var(--dim)}
 </style>
 </head>
 <body>
@@ -148,6 +153,13 @@ button:hover{transform:translateY(-1px);filter:brightness(1.08)}button:disabled{
   </section>
 
   <section class="agent-grid" id="agentResults"></section>
+
+  <section class="panel" id="humanDecisionBox">
+    <div class="panel-label" style="margin-bottom:12px">Human Decision Layer</div>
+    <div style="color:var(--yellow);font-weight:900;font-size:15px;margin-bottom:6px">25b3 Stable Trade-off detected.</div>
+    <div style="color:var(--muted);font-size:13px;margin-bottom:20px">89076570306eIntent304c7af65408305730663044308b305f3081300167007d42522465ad304c5fc589813067305930024ee54e0b306e36848304b308965b994883092907830933067304f3060305530443002</div>
+    <div class="alloc-grid" id="humanDecisionCards"></div>
+  </section>
   <div class="footer-note">Node server required: http://127.0.0.1:3000 / No live buying. No external real API call.</div>
 </main>
 
@@ -413,8 +425,11 @@ async function runNegotiationLoop(){
       readiness,
       agent_results:finalResults,
       loop_log:loopLog,
-      source_brief:brief
+      source_brief:brief,
+      human_decision_options:[]
     };
+    const humanDecisionOptions = generateHumanDecisionOptions(finalAllocation, finalIntent, readiness, finalResults);
+    lastExport.human_decision_options = humanDecisionOptions;
 
     renderSummary(brief, strategy, finalIntent, allocatorIntent, executionIntent);
     renderReadiness(readiness);
@@ -423,6 +438,7 @@ async function runNegotiationLoop(){
     renderPolicy(policy);
     renderLoopLog(loopLog);
     renderAgentResults(finalResults);
+    renderHumanDecisionLayer(humanDecisionOptions);
 
     document.getElementById('allocSection').style.display='block';
     document.getElementById('loopSection').style.display='block';
@@ -606,6 +622,76 @@ function renderAgentResults(results){
   `).join('');
 }
 function yen(v){return '¥'+Number(v).toLocaleString('ja-JP')}
+function normalizeAllocationObject(obj){
+  const total = Object.values(obj).reduce((a,b)=>a+b,0)||1;
+  let remaining=100;
+  const keys=Object.keys(obj);
+  const out={};
+  keys.forEach((k,i)=>{
+    if(i===keys.length-1){out[k]=remaining;}
+    else{out[k]=Math.round(obj[k]/total*100);remaining-=out[k];}
+  });
+  return out;
+}
+
+function buildPerformancePriorityOption(finalAllocation){
+  const raw={Google:40,Meta:32,YouTube:12,TikTok:16};
+  return {
+    decision_option:"performance_priority",
+    label:"Performance Priority",
+    description:"CPAとCV効率を優先し、GoogleとMetaを厚めにする",
+    allocation:normalizeAllocationObject(raw),
+    best_for:"短期CV、CPA改善、確実なApp Install獲得",
+    risk:"若年層への発見・拡散は弱くなる"
+  };
+}
+
+function buildGrowthPriorityOption(finalAllocation){
+  const raw={Google:26,Meta:30,YouTube:14,TikTok:30};
+  return {
+    decision_option:"growth_priority",
+    label:"Growth Priority",
+    description:"若年層への発見と拡散を優先し、TikTokとMetaを厚めにする",
+    allocation:normalizeAllocationObject(raw),
+    best_for:"若年層開拓、初回利用、話題化、ブランド接触",
+    risk:"CPA安定性は下がる"
+  };
+}
+
+function buildBalancedHumanReviewOption(finalAllocation){
+  return {
+    decision_option:"balanced_human_review",
+    label:"Balanced Human Review",
+    description:"Agent間の均衡結果を尊重し、最終配分を維持する",
+    allocation:{...finalAllocation},
+    best_for:"CVと発見の両立、複数目的の同時達成",
+    risk:"明確な一点突破にはなりにくい"
+  };
+}
+
+function generateHumanDecisionOptions(finalAllocation,intentType,readiness,agentResults){
+  if(readiness.status!=="Stable Trade-off") return [];
+  return [
+    buildPerformancePriorityOption(finalAllocation),
+    buildGrowthPriorityOption(finalAllocation),
+    buildBalancedHumanReviewOption(finalAllocation)
+  ];
+}
+
+function renderHumanDecisionLayer(options){
+  const box=document.getElementById('humanDecisionBox');
+  if(!options||!options.length){box.classList.remove('on');return;}
+  box.classList.add('on');
+  document.getElementById('humanDecisionCards').innerHTML=options.map(o=>`
+    <div class="decision-card">
+      <div class="decision-label">${escapeHtml(o.label)}</div>
+      <div class="decision-alloc">${Object.entries(o.allocation).map(([k,v])=>`<strong>${k}</strong> ${v}%`).join(' / ')}</div>
+      <div class="decision-meta">${escapeHtml(o.description)}<br><strong>Best for:</strong> ${escapeHtml(o.best_for)}<br><strong>Risk:</strong> ${escapeHtml(o.risk)}</div>
+    </div>
+  `).join('');
+}
+
+
 function escapeHtml(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')}
 function downloadJSON(){
   if(!lastExport)return;
@@ -614,7 +700,7 @@ function downloadJSON(){
 }
 function downloadPDF(){
   if(!lastExport)return;
-  const html=`<html><head><meta charset="UTF-8"><title>AdCP Execution Lab v1.0</title><style>body{font-family:sans-serif;margin:32px;color:#111}table{border-collapse:collapse;width:100%;font-size:12px}td,th{border:1px solid #ddd;padding:8px}th{background:#f2f2f2}</style></head><body><h1>AdCP Execution Lab v1.0 Result</h1><p><strong>${lastExport.readiness.status}</strong><br>${lastExport.readiness.description}</p><h2>Final Allocation</h2><table><tr><th>Channel</th><th>Percent</th></tr>${Object.entries(lastExport.final_allocation).map(([k,v])=>`<tr><td>${k}</td><td>${v}%</td></tr>`).join('')}</table><h2>Policy</h2><p>${lastExport.policy.note}</p></body></html>`;
+  const html=`<html><head><meta charset="UTF-8"><title>AdCP Execution Lab v1.0</title><style>body{font-family:sans-serif;margin:32px;color:#111}table{border-collapse:collapse;width:100%;font-size:12px}td,th{border:1px solid #ddd;padding:8px}th{background:#f2f2f2}</style></head><body><h1>AdCP Execution Lab v1.0 Result</h1><p><strong>${lastExport.readiness.status}</strong><br>${lastExport.readiness.description}</p><h2>Final Allocation</h2><table><tr><th>Channel</th><th>Percent</th></tr>${Object.entries(lastExport.final_allocation).map(([k,v])=>`<tr><td>${k}</td><td>${v}%</td></tr>`).join('')}</table><h2>Policy</h2><p>${lastExport.policy.note}</p>${lastExport.human_decision_options&&lastExport.human_decision_options.length?`<h2>Human Decision Layer</h2><p>Stable Trade-off detected. 以下の3案から最終方針を選択してください。</p><table><tr><th>Option</th><th>Allocation</th><th>Best for</th><th>Risk</th></tr>${lastExport.human_decision_options.map(o=>`<tr><td><strong>${o.label}</strong><br><small>${o.description}</small></td><td>${Object.entries(o.allocation).map(([k,v])=>k+' '+v+'%').join(' / ')}</td><td>${o.best_for}</td><td>${o.risk}</td></tr>`).join('')}</table>`:''}</body></html>`;
   const w=window.open('','_blank');w.document.write(html);w.document.close();w.onload=()=>{w.focus();w.print()};
 }
 function loadSample(){
@@ -628,7 +714,7 @@ function clearAll(){
   document.getElementById('briefInput').value='';
   document.getElementById('strategyInput').value='';
   document.getElementById('summary').innerHTML='<div class="row"><div class="key">Status</div><div class="val">Not Loaded</div></div>';
-  ['readinessBox','policyBox'].forEach(id=>document.getElementById(id).classList.remove('on'));
+  ['readinessBox','policyBox','humanDecisionBox'].forEach(id=>document.getElementById(id).classList.remove('on'));
   document.getElementById('allocSection').style.display='none';
   document.getElementById('loopSection').style.display='none';
   document.getElementById('agentResults').innerHTML='';
