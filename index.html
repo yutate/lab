@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>lab / yutate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #d6dce8;
+  --surface: rgba(255,255,255,0.45);
+  --border: rgba(100,120,160,0.18);
+  --border-strong: rgba(100,120,160,0.32);
+  --text: #1a2035;
+  --muted: #6b7a99;
+  --dim: #a0adc4;
+  --accent: #2a4fff;
+  --green: #00875a;
+  --green-soft: rgba(0,135,90,0.1);
+  --yellow: #8a6400;
+  --yellow-soft: rgba(138,100,0,0.1);
+  --mono: 'Space Mono', monospace;
+  --serif: 'DM Serif Display', serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(180,195,230,0.6) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 80%, rgba(190,205,235,0.5) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 40% at 60% 30%, rgba(210,220,240,0.4) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(100,120,160,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(100,120,160,0.06) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wrap {
+  position: relative;
+  z-index: 2;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 28px 120px;
+}
+
+header {
+  padding: 72px 0 52px;
+  border-bottom: 1px solid var(--border-strong);
+  margin-bottom: 52px;
+  opacity: 0;
+  animation: fadeUp 0.4s ease 0.05s forwards;
+}
+
+.eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.6); }
+}
+
+h1 {
+  font-family: var(--serif);
+  font-size: clamp(48px, 10vw, 88px);
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: -0.02em;
+  line-height: 0.95;
+  color: var(--text);
+  margin-bottom: 28px;
+}
+
+h1 em {
+  font-style: normal;
+  color: var(--muted);
+  font-size: 0.52em;
+  vertical-align: middle;
+  letter-spacing: 0.05em;
+  font-family: var(--mono);
+}
+
+.header-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.header-desc {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 2;
+  max-width: 400px;
+}
+
+.header-nav a {
+  font-size: 11px;
+  color: var(--dim);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.header-nav a:hover { color: var(--accent); }
+
+.section-label {
+  font-size: 9px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-strong);
+}
+
+.projects { display: grid; gap: 12px; }
+
+.project-card {
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  padding: 32px 36px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: start;
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+  opacity: 0;
+  animation: fadeUp 0.5s ease forwards;
+}
+
+.project-card:nth-child(1) { animation-delay: 0.15s; }
+.project-card:nth-child(2) { animation-delay: 0.22s; }
+.project-card:nth-child(3) { animation-delay: 0.29s; }
+
+.project-card:hover {
+  background: rgba(255,255,255,0.65);
+  border-color: rgba(42,79,255,0.28);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(100,120,180,0.12);
+}
+
+.project-id {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--dim);
+  margin-bottom: 12px;
+}
+
+.project-name {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 26px;
+  color: var(--text);
+  margin-bottom: 12px;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.project-desc {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.9;
+  max-width: 520px;
+  margin-bottom: 16px;
+}
+
+.project-url {
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 0.03em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: gap 0.2s;
+}
+
+.project-card:hover .project-url { gap: 10px; }
+.project-url::after { content: '↗'; }
+
+.badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 5px 11px;
+  border-radius: 2px;
+  white-space: nowrap;
+  font-family: var(--mono);
+}
+
+.badge-live {
+  background: var(--green-soft);
+  color: var(--green);
+  border: 1px solid rgba(0,135,90,0.22);
+}
+
+.badge-wip {
+  background: var(--yellow-soft);
+  color: var(--yellow);
+  border: 1px solid rgba(138,100,0,0.22);
+}
+
+footer {
+  margin-top: 72px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-strong);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.footer-l { font-size: 10px; color: var(--dim); letter-spacing: 0.08em; }
+
+.footer-r a {
+  font-size: 10px;
+  color: var(--dim);
+  text-decoration: none;
+  letter-spacing: 0.08em;
+  transition: color 0.15s;
+}
+
+.footer-r a:hover { color: var(--accent); }
+
+@keyframes fadeUp {
+  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(10px); }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow"><span class="dot"></span> yutate / lab</div>
+    <h1>Lab <em>/ experiments</em></h1>
+    <div class="header-body">
+      <p class="header-desc">
+        作りながら考える場所。<br>
+        完成していないものを置く。<br>
+        違和感を観察して、次の設計の種にする。
+      </p>
+      <div class="header-nav">
+        <a href="https://yutate.github.io/tools/">→ tools</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="section-label">Projects</div>
+
+  <div class="projects">
+    <a class="project-card" href="https://yutate.github.io/lab/adcp-exe/" target="_blank">
+      <div>
+        <div class="project-id">LAB-001</div>
+        <div class="project-name">AdCP Execution Lab</div>
+        <div class="project-desc">
+          広告配分を「最適化する問題」から「合意形成する問題」へ。<br>
+          Mock Seller AgentとのA2A交渉・重み付け・制約・収束を実装した<br>
+          分散型意思決定エンジン。
+        </div>
+        <div class="project-url">yutate.github.io/lab/adcp-exe</div>
+      </div>
+      <div><span class="badge badge-live">v1.0 live</span></div>
+    </a>
+  </div>
+
+  <footer>
+    <div class="footer-l">yutate / lab — 作り途中のものを置く場所</div>
+    <div class="footer-r"><a href="https://yutate.github.io/tools/">→ tools</a></div>
+  </footer>
+</div>
+</body>
+</html>
