@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AdCP Execution Lab v1.0</title>
+<style>
+:root{
+  --bg:#08090d;--surface:#10121a;--surface2:#171a24;--border:rgba(255,255,255,.1);
+  --text:#e9ebf2;--muted:#8c90a3;--dim:#55596b;--accent:#7c6cff;
+  --green:#39ff6e;--yellow:#ffb800;--red:#ff4d6d;--blue:#00d4ff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;line-height:1.6}
+header{position:sticky;top:0;z-index:10;background:rgba(8,9,13,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:18px 24px}
+.header-inner{max-width:1180px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.title{font-size:18px;font-weight:900}.subtitle{font-size:12px;color:var(--muted)}
+.badge{border:1px solid rgba(124,108,255,.35);color:var(--accent);background:rgba(124,108,255,.12);border-radius:999px;padding:5px 10px;font-size:11px;font-weight:800;white-space:nowrap}
+main{max-width:1180px;margin:0 auto;padding:28px 20px 80px;display:grid;gap:18px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}.header-inner{align-items:flex-start;flex-direction:column}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.card-head{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.card-title{font-size:14px;font-weight:900}.card-note{font-size:11px;color:var(--dim)}
+.card-body{padding:18px}
+textarea,select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);padding:14px;outline:none;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;line-height:1.6}
+textarea{min-height:260px;resize:vertical}
+select{font-family:inherit;min-height:45px}
+textarea:focus,select:focus{border-color:var(--accent)}
+button{border:0;border-radius:10px;padding:11px 16px;cursor:pointer;font-weight:900;color:#fff;background:var(--accent);transition:.18s ease}
+button:hover{transform:translateY(-1px);filter:brightness(1.08)}button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-secondary{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-green{background:var(--green);color:#061107}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.error{display:none;color:var(--red);background:rgba(255,77,109,.1);border:1px solid rgba(255,77,109,.25);padding:10px 12px;border-radius:10px;font-size:12px;margin-top:12px}.error.on{display:block}
+.summary{display:grid;gap:8px}
+.row{display:grid;grid-template-columns:150px 1fr;gap:12px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px}.row:last-child{border-bottom:0}
+.key{color:var(--dim);font-weight:900;font-size:11px;text-transform:uppercase;letter-spacing:.08em}.val{word-break:break-word}
+.panel{display:none;border-radius:16px;border:1px solid var(--border);background:var(--surface);padding:20px}.panel.on{display:block}
+.panel-label{font-size:12px;color:var(--muted);font-weight:900;text-transform:uppercase;letter-spacing:.1em}
+.status{font-size:24px;font-weight:900;letter-spacing:-.03em}.ready{color:var(--green)}.adjust{color:var(--yellow)}.not{color:var(--red)}
+.desc{margin-top:8px;color:var(--muted);font-size:13px}
+.alloc-grid,.agent-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:900px){.alloc-grid,.agent-grid{grid-template-columns:1fr 1fr}}@media(max-width:600px){.alloc-grid,.agent-grid{grid-template-columns:1fr}}
+.alloc-card,.agent-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.alloc-card{padding:14px}
+.alloc-name{font-size:13px;font-weight:900}.alloc-pct{font-size:28px;font-weight:900;margin-top:2px}.alloc-source{font-size:11px;color:var(--dim)}
+.bar{height:6px;background:var(--surface2);border-radius:999px;overflow:hidden;margin-top:8px}.bar-in{height:100%;background:var(--accent);border-radius:999px}
+.agent-head{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:12px}.agent-name{font-size:14px;font-weight:900}.agent-channel{font-size:11px;color:var(--dim)}
+.availability{font-size:10px;font-weight:900;border-radius:999px;padding:4px 8px;white-space:nowrap;text-transform:uppercase;letter-spacing:.08em}
+.available{color:var(--green);border:1px solid rgba(57,255,110,.35);background:rgba(57,255,110,.1)}
+.limited{color:var(--yellow);border:1px solid rgba(255,184,0,.35);background:rgba(255,184,0,.1)}
+.unavailable{color:var(--red);border:1px solid rgba(255,77,109,.35);background:rgba(255,77,109,.1)}
+.agent-body{padding:14px 16px;display:grid;gap:8px}.metric{background:var(--surface2);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:8px}.metric-label{font-size:10px;color:var(--dim);font-weight:900}.metric-value{font-size:14px;font-weight:900}
+.adjust-list,.loop-list{display:grid;gap:10px;margin-top:12px}.item{background:var(--surface2);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px 14px}.item-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}.item-title{font-weight:900}.item-text{font-size:13px;color:var(--muted)}
+.severity{border-radius:999px;padding:3px 8px;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}.medium{color:var(--yellow);border:1px solid rgba(255,184,0,.35);background:rgba(255,184,0,.1)}.high{color:var(--red);border:1px solid rgba(255,77,109,.35);background:rgba(255,77,109,.1)}.low{color:var(--blue);border:1px solid rgba(0,212,255,.35);background:rgba(0,212,255,.1)}
+.footer-note{color:var(--dim);font-size:12px;text-align:center;margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div>
+      <div class="title">AdCP Execution Lab v1.0</div>
+      <div class="subtitle">A2A Agent Intent / Weighted Negotiation / Intent-aware Constraints / Convergence</div>
+    </div>
+    <div class="badge">LAB v1.0 / A2A LOCAL / CONVERGED</div>
+  </div>
+</header>
+
+<main>
+  <div class="grid">
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">1. AdCP Brief Input</div>
+          <div class="card-note">Ad Strategy StudioのAdCP Brief JSONを貼り付け</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <textarea id="briefInput" placeholder="AdCP Brief JSON"></textarea>
+        <div class="actions">
+          <button onclick="loadSample()">Sample</button>
+          <button class="btn-secondary" onclick="clearAll()">Clear</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">2. Strategy Transfer / Intent Policy</div>
+          <div class="card-note">Allocator JSONを貼り付け。Intent Typeで交渉ポリシーを切替</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <select id="intentType">
+          <option value="comparison" selected>comparison</option>
+          <option value="conversion_like">conversion_like</option>
+          <option value="learning">learning</option>
+          <option value="impulse">impulse</option>
+          <option value="balanced">balanced</option>
+        </select>
+        <div style="height:12px"></div>
+        <textarea id="strategyInput" placeholder="Strategy Transfer JSON（allocation含む）"></textarea>
+        <div class="actions">
+          <button class="btn-green" id="runBtn" onclick="runNegotiationLoop()">Run Negotiation Loop</button>
+          <button class="btn-secondary" id="downloadJsonBtn" onclick="downloadJSON()" disabled>↓ JSON</button>
+          <button class="btn-secondary" id="downloadPdfBtn" onclick="downloadPDF()" disabled>↓ PDF</button>
+        </div>
+        <div class="error" id="errorBox"></div>
+      </div>
+    </section>
+  </div>
+
+  <section class="card">
+    <div class="card-head"><div><div class="card-title">Brief / Strategy Summary</div><div class="card-note">読み込んだBriefとAllocator結果</div></div></div>
+    <div class="card-body"><div class="summary" id="summary"><div class="row"><div class="key">Status</div><div class="val">Not Loaded</div></div></div></div>
+  </section>
+
+  <section class="panel" id="readinessBox">
+    <div class="panel-label">Negotiation Status</div>
+    <div class="status" id="readinessStatus">—</div>
+    <div class="desc" id="readinessDesc"></div>
+  </section>
+
+  <section class="card" id="allocSection" style="display:none">
+    <div class="card-head"><div><div class="card-title">Initial / Final Allocation</div><div class="card-note">Allocator初期配分とA2A交渉後の収束配分</div></div></div>
+    <div class="card-body">
+      <div class="panel-label" style="margin-bottom:10px">Initial Allocation</div>
+      <div class="alloc-grid" id="initialAlloc"></div>
+      <div class="panel-label" style="margin:20px 0 10px">Final Allocation</div>
+      <div class="alloc-grid" id="finalAlloc"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="policyBox">
+    <div class="panel-label">Intent Policy</div>
+    <div class="desc" id="policyDesc"></div>
+  </section>
+
+  <section class="card" id="loopSection" style="display:none">
+    <div class="card-head"><div><div class="card-title">Negotiation Loop Log</div><div class="card-note">Agent提案 → 重み付け → 制約 → 収束の履歴</div></div></div>
+    <div class="card-body"><div class="loop-list" id="loopLog"></div></div>
+  </section>
+
+  <section class="agent-grid" id="agentResults"></section>
+  <div class="footer-note">Node server required: http://127.0.0.1:3000 / No live buying. No external real API call.</div>
+</main>
+
+<script>
+let lastExport = null;
+const AGENT_BASE_URL = "http://127.0.0.1:3000";
+
+function showError(msg){const e=document.getElementById('errorBox');e.textContent=msg;e.classList.add('on')}
+function clearError(){const e=document.getElementById('errorBox');e.textContent='';e.classList.remove('on')}
+
+async function callAgent(path, payload){
+  const res = await fetch(AGENT_BASE_URL + path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  if(!res.ok) throw new Error(path + " failed: " + res.status);
+  return await res.json();
+}
+
+function getIntentPolicy(intentType){
+  const policies = {
+    comparison: {
+      weight: { Google:1.05, Meta:1.05, YouTube:0.95, TikTok:0.90 },
+      maxCap: { Google:40, Meta:34, YouTube:28, TikTok:22 },
+      minFloor: { Google:22, Meta:22, YouTube:12, TikTok:14 },
+      deltaLimit: { Google:6, Meta:5, YouTube:5, TikTok:4 },
+      note: "比較検討Intentのため、Google偏重を抑え、Meta/YouTubeの比較支援を残す"
+    },
+    conversion_like: {
+      weight: { Google:1.25, Meta:1.00, YouTube:0.75, TikTok:0.80 },
+      maxCap: { Google:50, Meta:35, YouTube:22, TikTok:20 },
+      minFloor: { Google:25, Meta:20, YouTube:8, TikTok:10 },
+      deltaLimit: { Google:8, Meta:6, YouTube:6, TikTok:5 },
+      note: "CV寄りIntentのため、Googleの上限を広げる"
+    },
+    learning: {
+      weight: { Google:0.95, Meta:1.00, YouTube:1.20, TikTok:0.85 },
+      maxCap: { Google:34, Meta:32, YouTube:35, TikTok:20 },
+      minFloor: { Google:18, Meta:20, YouTube:18, TikTok:12 },
+      deltaLimit: { Google:5, Meta:5, YouTube:7, TikTok:4 },
+      note: "学習Intentのため、YouTubeを厚めに残す"
+    },
+    impulse: {
+      weight: { Google:0.90, Meta:1.15, YouTube:0.80, TikTok:1.15 },
+      maxCap: { Google:32, Meta:38, YouTube:20, TikTok:32 },
+      minFloor: { Google:15, Meta:24, YouTube:8, TikTok:18 },
+      deltaLimit: { Google:5, Meta:7, YouTube:5, TikTok:7 },
+      note: "衝動/発見Intentのため、Meta/TikTokを重視する"
+    },
+    balanced: {
+      weight: { Google:1.10, Meta:1.00, YouTube:0.90, TikTok:0.90 },
+      maxCap: { Google:45, Meta:35, YouTube:25, TikTok:25 },
+      minFloor: { Google:20, Meta:20, YouTube:10, TikTok:15 },
+      deltaLimit: { Google:8, Meta:6, YouTube:6, TikTok:5 },
+      note: "標準バランス"
+    }
+  };
+  return policies[intentType] || policies.balanced;
+}
+
+function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
+function normalize(allocation){
+  let total = Object.values(allocation).reduce((a,b)=>a+b,0) || 1;
+  let out = {};
+  let remaining = 100;
+  const keys = Object.keys(allocation);
+  keys.forEach((k,i)=>{
+    if(i===keys.length-1){out[k]=remaining}else{out[k]=Math.round(allocation[k]/total*100);remaining-=out[k]}
+  });
+  return out;
+}
+function diffTotal(a,b){return Object.keys(a).reduce((sum,k)=>sum+Math.abs((a[k]||0)-(b[k]||0)),0)}
+
+function applyConstraints(rawNext, previous, policy){
+  let constrained = {};
+  Object.keys(rawNext).forEach(ch=>{
+    const minByDelta = previous[ch] - policy.deltaLimit[ch];
+    const maxByDelta = previous[ch] + policy.deltaLimit[ch];
+    const min = Math.max(policy.minFloor[ch], minByDelta);
+    const max = Math.min(policy.maxCap[ch], maxByDelta);
+    constrained[ch] = clamp(rawNext[ch], min, max);
+  });
+  return normalize(constrained);
+}
+
+async function runNegotiationLoop(){
+  clearError();
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('runBtn').textContent = 'Negotiating...';
+
+  try{
+    let brief, strategy;
+    try{brief = JSON.parse(document.getElementById('briefInput').value.trim())}
+    catch(e){throw new Error('AdCP Brief JSONのparseに失敗しました: '+e.message)}
+
+    const rawStrategy = document.getElementById('strategyInput').value.trim();
+    if(rawStrategy){try{strategy=JSON.parse(rawStrategy)}catch(e){throw new Error('Strategy Transfer JSONのparseに失敗しました: '+e.message)}}
+    else{strategy=buildFallbackStrategy()}
+
+    const intentType = document.getElementById('intentType').value || brief.intent_type || strategy.intent_type || 'balanced';
+    const policy = getIntentPolicy(intentType);
+
+    const initialAllocation = parseStrategyAllocation(strategy);
+    let allocation = {...initialAllocation};
+    let loopLog = [];
+    let status = 'Running';
+    let finalResults = [];
+    let finalAllocation = {...allocation};
+
+    for(let i=0;i<6;i++){
+      const results = await checkExecutionA2A(brief, allocation, intentType);
+      let rawNext = {};
+      results.forEach(r=>{
+        const agent = normalizeChannel(r.agent || r.agent_name || r.channel);
+        rawNext[agent] = (Number(r.suggested_allocation) || allocation[agent]) * (policy.weight[agent] || 1);
+      });
+
+      const constrainedNext = applyConstraints(rawNext, allocation, policy);
+      const diff = diffTotal(allocation, constrainedNext);
+
+      loopLog.push({
+        step:i+1,
+        intent_type:intentType,
+        allocation:{...allocation},
+        agent_proposals:results.map(r=>({
+          agent:r.agent,
+          intent:r.agent_intent,
+          suggested:r.suggested_allocation,
+          weighted_suggestion: Math.round((Number(r.suggested_allocation)||allocation[normalizeChannel(r.agent)]) * (policy.weight[normalizeChannel(r.agent)]||1)),
+          role:r.suggested_role,
+          note:r.negotiation_note
+        })),
+        raw_next_allocation: normalize(rawNext),
+        constrained_next_allocation: constrainedNext,
+        diff_total: diff
+      });
+
+      finalResults = results;
+      finalAllocation = constrainedNext;
+
+      if(diff <= 2){
+        status = 'Converged';
+        allocation = constrainedNext;
+        break;
+      }
+
+      allocation = constrainedNext;
+
+      if(i===5){status='Not Converged'}
+    }
+
+    const readiness = buildReadiness(status, finalResults, finalAllocation, policy);
+
+    lastExport = {
+      export_type:'adcp_execution_lab_v1_negotiation_result',
+      lab_version:'v1.0',
+      mock_only:true,
+      a2a_local:true,
+      agent_base_url:AGENT_BASE_URL,
+      generated_at:new Date().toISOString(),
+      brief_summary:summarizeBrief(brief),
+      strategy_transfer:strategy,
+      intent_type:intentType,
+      policy,
+      initial_allocation:initialAllocation,
+      final_allocation:finalAllocation,
+      readiness,
+      agent_results:finalResults,
+      loop_log:loopLog,
+      source_brief:brief
+    };
+
+    renderSummary(brief, strategy, intentType);
+    renderReadiness(readiness);
+    renderAllocation('initialAlloc', initialAllocation, 'Allocator');
+    renderAllocation('finalAlloc', finalAllocation, 'Negotiated');
+    renderPolicy(policy);
+    renderLoopLog(loopLog);
+    renderAgentResults(finalResults);
+
+    document.getElementById('allocSection').style.display='block';
+    document.getElementById('loopSection').style.display='block';
+    document.getElementById('downloadJsonBtn').disabled=false;
+    document.getElementById('downloadPdfBtn').disabled=false;
+  }catch(e){
+    showError(e.message + ' / Node serverが起動しているか確認してください。');
+  }finally{
+    document.getElementById('runBtn').disabled=false;
+    document.getElementById('runBtn').textContent='Run Negotiation Loop';
+  }
+}
+
+async function checkExecutionA2A(brief, allocation, intentType){
+  const payloadBase = { brief, allocation, intent_type:intentType };
+  const rawResults = await Promise.all([
+    callAgent('/agent/google', {...payloadBase, allocation_pct: allocation.Google, channel:'Google'}),
+    callAgent('/agent/meta', {...payloadBase, allocation_pct: allocation.Meta, channel:'Meta'}),
+    callAgent('/agent/youtube', {...payloadBase, allocation_pct: allocation.YouTube, channel:'YouTube'}),
+    callAgent('/agent/tiktok', {...payloadBase, allocation_pct: allocation.TikTok, channel:'TikTok'})
+  ]);
+  return rawResults.map(r=>normalizeAgentResponse(r, allocation));
+}
+
+function normalizeAgentResponse(r, allocation){
+  const name = normalizeChannel(r.agent || r.channel || r.agent_name || '');
+  const pct = allocation[name] || Number(r.allocation_pct) || 0;
+  return {
+    agent: name,
+    agent_name: r.agent_name || (name + ' Mock Seller Agent'),
+    channel: r.channel || name,
+    allocation_pct: pct,
+    availability: r.availability || 'limited',
+    estimated_cpa: r.estimated_cpa !== undefined ? (typeof r.estimated_cpa === 'number' ? yen(r.estimated_cpa) : r.estimated_cpa) : 'unknown',
+    estimated_reach: r.estimated_reach || r.reach || 'unknown',
+    required_creative: r.required_creative || [],
+    constraints: r.constraints || [],
+    risk: r.risk || r.message || '',
+    recommendation: r.recommendation || r.message || '',
+    agent_intent: r.agent_intent || '',
+    suggested_allocation: r.suggested_allocation,
+    suggested_role: r.suggested_role || '',
+    negotiation_note: r.negotiation_note || ''
+  };
+}
+
+function buildFallbackStrategy(){
+  return {
+    transfer_version:'fallback_v1',
+    source:'fallback_default',
+    strategy_type:'balanced',
+    allocation:[
+      {channel_group:'Google',percent:27},
+      {channel_group:'YouTube',percent:26},
+      {channel_group:'Meta',percent:25},
+      {channel_group:'TikTok',percent:22}
+    ],
+    confidence:0.5,
+    data_quality:'mock'
+  };
+}
+function parseStrategyAllocation(strategy){
+  const out = {};
+  const arr = strategy.allocation || [];
+  arr.forEach(a=>{
+    const name = normalizeChannel(a.channel_group || a.agent || a.channel || '');
+    const pct = Number(a.percent || String(a.percent || '').replace('%',''));
+    if(name && Number.isFinite(pct)) out[name] = pct;
+  });
+  return normalize(fillMissingChannels(out));
+}
+function fillMissingChannels(allocation){
+  const base = {Google:0, Meta:0, YouTube:0, TikTok:0};
+  Object.keys(allocation).forEach(k=>{base[normalizeChannel(k)] = allocation[k]});
+  const missing = Object.keys(base).filter(k=>!base[k]);
+  if(missing.length){
+    const used = Object.values(base).reduce((a,b)=>a+b,0);
+    const remain = Math.max(0,100-used);
+    missing.forEach(k=>base[k]=Math.floor(remain/missing.length));
+  }
+  return base;
+}
+function normalizeChannel(name){
+  const t=String(name).toLowerCase();
+  if(/google|search|p-max|pmax|検索/.test(t))return'Google';
+  if(/meta|facebook|instagram|ig|fb|インスタ/.test(t))return'Meta';
+  if(/youtube|yt|shorts|動画/.test(t))return'YouTube';
+  if(/tiktok|tik tok|ティック/.test(t))return'TikTok';
+  return String(name).replace(/\s*Agent\s*/i,'').trim();
+}
+function buildReadiness(status, results, allocation, policy){
+  const desc = status === 'Converged'
+    ? `交渉は収束しました。Final Allocation: ${Object.entries(allocation).map(([k,v])=>`${k} ${v}%`).join(' / ')}`
+    : `交渉は収束していません。Human Reviewが必要です。`;
+  return {status, description:desc, policy_note:policy.note, generated_at:new Date().toISOString()};
+}
+function summarizeBrief(brief){
+  return {
+    brand: brief.brand?.name || '',
+    objective: brief.objective || '',
+    target: brief.target_audience?.description || brief.target_audience?.age_range || '',
+    budget: brief.budget_constraints?.total_budget || '',
+    kpi: brief.kpi || [],
+    preferred_channels: brief.preferred_channels || []
+  };
+}
+function renderSummary(brief,strategy,intentType){
+  const s=summarizeBrief(brief);
+  document.getElementById('summary').innerHTML=`
+    <div class="row"><div class="key">Status</div><div class="val">Loaded</div></div>
+    <div class="row"><div class="key">Brand</div><div class="val">${escapeHtml(s.brand||'—')}</div></div>
+    <div class="row"><div class="key">Objective</div><div class="val">${escapeHtml(s.objective||'—')}</div></div>
+    <div class="row"><div class="key">Target</div><div class="val">${escapeHtml(s.target||'—')}</div></div>
+    <div class="row"><div class="key">Budget</div><div class="val">${escapeHtml(s.budget||'—')}</div></div>
+    <div class="row"><div class="key">KPI</div><div class="val">${escapeHtml((s.kpi||[]).map(k=>`${k.metric}: ${k.target}`).join(' / ')||'—')}</div></div>
+    <div class="row"><div class="key">Intent</div><div class="val">${escapeHtml(intentType)}</div></div>
+    <div class="row"><div class="key">Strategy</div><div class="val">${escapeHtml(strategy.strategy_type||'—')} / confidence: ${escapeHtml(String(strategy.confidence||'—'))}</div></div>
+  `;
+}
+function renderReadiness(r){
+  const el=document.getElementById('readinessStatus');
+  el.textContent=r.status;
+  el.className='status '+(r.status==='Converged'?'ready':'not');
+  document.getElementById('readinessDesc').textContent=r.description;
+  document.getElementById('readinessBox').classList.add('on');
+}
+function renderAllocation(id, allocation, source){
+  document.getElementById(id).innerHTML=Object.entries(allocation).map(([ch,pct])=>`
+    <div class="alloc-card">
+      <div class="alloc-name">${escapeHtml(ch)}</div>
+      <div class="alloc-pct">${pct}%</div>
+      <div class="alloc-source">${escapeHtml(source)}</div>
+      <div class="bar"><div class="bar-in" style="width:${pct}%"></div></div>
+    </div>
+  `).join('');
+}
+function renderPolicy(policy){
+  document.getElementById('policyDesc').textContent = policy.note;
+  document.getElementById('policyBox').classList.add('on');
+}
+function renderLoopLog(log){
+  document.getElementById('loopLog').innerHTML=log.map(step=>`
+    <div class="item">
+      <div class="item-top"><div class="item-title">Step ${step.step}</div><div class="severity ${step.diff_total<=2?'low':'medium'}">diff ${step.diff_total}</div></div>
+      <div class="item-text"><strong>Allocation:</strong> ${Object.entries(step.allocation).map(([k,v])=>`${k} ${v}%`).join(' / ')}</div>
+      <div class="item-text"><strong>Raw:</strong> ${Object.entries(step.raw_next_allocation).map(([k,v])=>`${k} ${v}%`).join(' / ')}</div>
+      <div class="item-text"><strong>Constrained:</strong> ${Object.entries(step.constrained_next_allocation).map(([k,v])=>`${k} ${v}%`).join(' / ')}</div>
+      <div class="item-text"><strong>Agent proposals:</strong> ${step.agent_proposals.map(a=>`${a.agent}:${a.suggested}% (${a.role})`).join(' / ')}</div>
+    </div>
+  `).join('');
+}
+function renderAgentResults(results){
+  document.getElementById('agentResults').innerHTML=results.map(r=>`
+    <article class="agent-card">
+      <div class="agent-head"><div><div class="agent-name">${escapeHtml(r.agent_name)}</div><div class="agent-channel">${escapeHtml(r.channel)} / allocation ${r.allocation_pct}%</div></div><div class="availability ${r.availability}">${r.availability}</div></div>
+      <div class="agent-body">
+        <div class="metric"><div class="metric-label">Suggested Allocation</div><div class="metric-value">${escapeHtml(String(r.suggested_allocation||'—'))}%</div></div>
+        <div class="metric"><div class="metric-label">Suggested Role</div><div class="metric-value">${escapeHtml(r.suggested_role||'—')}</div></div>
+        <div class="item-text"><strong>Intent:</strong> ${escapeHtml(r.agent_intent)}</div>
+        <div class="item-text"><strong>Negotiation Note:</strong> ${escapeHtml(r.negotiation_note)}</div>
+      </div>
+    </article>
+  `).join('');
+}
+function yen(v){return '¥'+Number(v).toLocaleString('ja-JP')}
+function escapeHtml(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')}
+function downloadJSON(){
+  if(!lastExport)return;
+  const blob=new Blob([JSON.stringify(lastExport,null,2)],{type:'application/json;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='adcp-execution-v1-result-'+Date.now()+'.json';a.click();URL.revokeObjectURL(a.href);
+}
+function downloadPDF(){
+  if(!lastExport)return;
+  const html=`<html><head><meta charset="UTF-8"><title>AdCP Execution Lab v1.0</title><style>body{font-family:sans-serif;margin:32px;color:#111}table{border-collapse:collapse;width:100%;font-size:12px}td,th{border:1px solid #ddd;padding:8px}th{background:#f2f2f2}</style></head><body><h1>AdCP Execution Lab v1.0 Result</h1><p><strong>${lastExport.readiness.status}</strong><br>${lastExport.readiness.description}</p><h2>Final Allocation</h2><table><tr><th>Channel</th><th>Percent</th></tr>${Object.entries(lastExport.final_allocation).map(([k,v])=>`<tr><td>${k}</td><td>${v}%</td></tr>`).join('')}</table><h2>Policy</h2><p>${lastExport.policy.note}</p></body></html>`;
+  const w=window.open('','_blank');w.document.write(html);w.document.close();w.onload=()=>{w.focus();w.print()};
+}
+function loadSample(){
+  const brief={adcp_version:'draft',buying_mode:'brief',input_mode:'informed_decision',intent_type:'comparison',brand:{name:'金融（クレジットカード）',btob_btoc:'BtoC'},objective:'EC Purchase / Conversion',target_audience:{description:'日常の支払いをお得にしたい若手社会人。カード発行を比較検討中。',age_range:'20〜30代',location:'Japan'},budget_constraints:{total_budget:'2,000,000 - 5,000,000',currency:'JPY',period_label:'1ヶ月'},preferred_channels:['Google','YouTube','Meta','TikTok'],kpi:[{metric:'CPA',target:'8000円'},{metric:'CV/月',target:'400件'}]};
+  const strategy={transfer_version:'draft_v1',source:'ad_strategy_decision_simulator_poc',strategy_type:'balanced',confidence:0.55,data_quality:'low',recommended_scenario:'balanced_learning',allocation:[{channel_group:'Google',percent:27},{channel_group:'YouTube',percent:26},{channel_group:'Meta',percent:25},{channel_group:'TikTok',percent:22}],human_review_required:true};
+  document.getElementById('briefInput').value=JSON.stringify(brief,null,2);
+  document.getElementById('strategyInput').value=JSON.stringify(strategy,null,2);
+  document.getElementById('intentType').value=brief.intent_type;
+}
+function clearAll(){
+  document.getElementById('briefInput').value='';
+  document.getElementById('strategyInput').value='';
+  document.getElementById('summary').innerHTML='<div class="row"><div class="key">Status</div><div class="val">Not Loaded</div></div>';
+  ['readinessBox','policyBox'].forEach(id=>document.getElementById(id).classList.remove('on'));
+  document.getElementById('allocSection').style.display='none';
+  document.getElementById('loopSection').style.display='none';
+  document.getElementById('agentResults').innerHTML='';
+  document.getElementById('downloadJsonBtn').disabled=true;
+  document.getElementById('downloadPdfBtn').disabled=true;
+  lastExport=null;clearError();
+}
+</script>
+</body>
+</html>
