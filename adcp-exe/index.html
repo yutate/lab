@@ -82,6 +82,9 @@ button:hover{transform:translateY(-1px);filter:brightness(1.08)}button:disabled{
         <div class="actions">
           <button onclick="loadSample()">Sample</button>
           <button class="btn-secondary" onclick="clearAll()">Clear</button>
+          <button class="btn-secondary" onclick="saveConditions()">&#128190; Save</button>
+          <button class="btn-secondary" onclick="loadConditions()">&#128194; Load</button>
+          <button class="btn-secondary" onclick="clearConditions()">&#128465; Clear Save</button>
         </div>
       </div>
     </section>
@@ -150,7 +153,50 @@ button:hover{transform:translateY(-1px);filter:brightness(1.08)}button:disabled{
 
 <script>
 let lastExport = null;
-const AGENT_BASE_URL = "http://127.0.0.1:3000";
+const AGENT_BASE_URL = "https://lab-production-d6e6.up.railway.app";
+
+const LS_KEY = "adcp_lab_conditions";
+function saveConditions(){
+  try{
+    const data = {
+      brief: document.getElementById('briefInput').value,
+      strategy: document.getElementById('strategyInput').value,
+      intent: document.getElementById('intentType').value,
+      saved_at: new Date().toISOString()
+    };
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+    showToast("条件を保存しました");
+  }catch(e){ showToast("保存失敗: "+e.message, true); }
+}
+function loadConditions(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw){ showToast("保存された条件がありません", true); return; }
+    const data = JSON.parse(raw);
+    if(data.brief)    document.getElementById('briefInput').value    = data.brief;
+    if(data.strategy) document.getElementById('strategyInput').value = data.strategy;
+    if(data.intent)   document.getElementById('intentType').value    = data.intent;
+    showToast("条件を復元しました（" + (data.saved_at ? data.saved_at.slice(0,16).replace('T',' ') : '—') + "）");
+  }catch(e){ showToast("読み込み失敗: "+e.message, true); }
+}
+function clearConditions(){
+  localStorage.removeItem(LS_KEY);
+  showToast("保存条件をクリアしました");
+}
+function showToast(msg, isErr=false){
+  let t = document.getElementById('toast');
+  if(!t){
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e2030;border:1px solid rgba(255,255,255,.15);color:#e9ebf2;padding:10px 20px;border-radius:999px;font-size:12px;font-weight:700;z-index:9999;transition:opacity .3s;pointer-events:none';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.borderColor = isErr ? 'rgba(255,77,109,.4)' : 'rgba(124,108,255,.4)';
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>{ t.style.opacity='0'; }, 2200);
+}
 
 function showError(msg){const e=document.getElementById('errorBox');e.textContent=msg;e.classList.add('on')}
 function clearError(){const e=document.getElementById('errorBox');e.textContent='';e.classList.remove('on')}
