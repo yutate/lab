@@ -535,10 +535,10 @@ async function runNegotiationLoop(){
 async function checkExecutionA2A(brief, allocation, intentType){
   const payloadBase = { brief, allocation, intent_type:intentType };
   const rawResults = await Promise.all([
-    callAgent('/adcp/agent/google', {...payloadBase, allocation_pct: allocation.Google, channel:'Google'}),
-    callAgent('/adcp/agent/meta', {...payloadBase, allocation_pct: allocation.Meta, channel:'Meta'}),
-    callAgent('/adcp/agent/youtube', {...payloadBase, allocation_pct: allocation.YouTube, channel:'YouTube'}),
-    callAgent('/adcp/agent/tiktok', {...payloadBase, allocation_pct: allocation.TikTok, channel:'TikTok'})
+    callAgent('/agent/google', {...payloadBase, allocation_pct: allocation.Google, channel:'Google'}),
+    callAgent('/agent/meta', {...payloadBase, allocation_pct: allocation.Meta, channel:'Meta'}),
+    callAgent('/agent/youtube', {...payloadBase, allocation_pct: allocation.YouTube, channel:'YouTube'}),
+    callAgent('/agent/tiktok', {...payloadBase, allocation_pct: allocation.TikTok, channel:'TikTok'})
   ]);
   return rawResults.map(r=>normalizeAgentResponse(r, allocation));
 }
@@ -780,7 +780,29 @@ function downloadJSON(){
 }
 function downloadPDF(){
   if(!lastExport)return;
-  const html=`<html><head><meta charset="UTF-8"><title>AdCP Execution Lab v1.0</title><style>body{font-family:sans-serif;margin:32px;color:#111}table{border-collapse:collapse;width:100%;font-size:12px}td,th{border:1px solid #ddd;padding:8px}th{background:#f2f2f2}</style></head><body><h1>AdCP Execution Lab v1.0 Result</h1><p><strong>${lastExport.readiness.status}</strong><br>${lastExport.readiness.description}</p><h2>Final Allocation</h2><table><tr><th>Channel</th><th>Percent</th></tr>${Object.entries(lastExport.final_allocation).map(([k,v])=>`<tr><td>${k}</td><td>${v}%</td></tr>`).join('')}</table><h2>Policy</h2><p>${lastExport.policy.note}</p>${lastExport.human_decision_options&&lastExport.human_decision_options.length?`<h2>Human Decision Layer</h2><p>Stable Trade-off detected. 以下の3案から最終方針を選択してください。</p><table><tr><th>Option</th><th>Allocation</th><th>Best for</th><th>Risk</th></tr>${lastExport.human_decision_options.map(o=>`<tr><td><strong>${o.label}</strong><br><small>${o.description}</small></td><td>${Object.entries(o.allocation).map(([k,v])=>k+' '+v+'%').join(' / ')}</td><td>${o.best_for}</td><td>${o.risk}</td></tr>`).join('')}</table>`:''}</body></html>`;
+  const e = lastExport;
+  const brief = e.source_brief || {};
+  const strategy = e.strategy || {};
+  const loopLog = e.loop_log || [];
+  const generatedAt = e.readiness?.generated_at ? e.readiness.generated_at.slice(0,16).replace('T',' ') : '—';
+  const briefRows = [
+    ['業種', brief.industry],['目的', brief.objective],['予算', brief.budget],
+    ['期間', brief.period],['ターゲット', brief.target_audience?.age_range||brief.target_audience],
+    ['KPI', (brief.kpi||[]).map(k=>k.metric+': '+k.target).join(' / ')],
+  ].filter(([,v])=>v).map(([k,v])=>`<tr><td class="label">${k}</td><td>${v}</td></tr>`).join('');
+  const strategyRows = [
+    ['Strategy Type', strategy.strategy_type],['Confidence', strategy.confidence],
+    ['Intent Type', strategy.intent_type],['Rationale', strategy.rationale],
+  ].filter(([,v])=>v).map(([k,v])=>`<tr><td class="label">${k}</td><td>${v}</td></tr>`).join('');
+  const intentRows = [
+    ['Allocator Intent', e.allocator_intent],['Execution Intent', e.execution_intent],
+    ['Final Intent', e.intent_type],['Policy Note', e.policy?.note],
+  ].filter(([,v])=>v).map(([k,v])=>`<tr><td class="label">${k}</td><td>${v}</td></tr>`).join('');
+  const loopRows = loopLog.map(l=>`<tr><td>Step ${l.step}</td><td>${Object.entries(l.allocation||{}).map(([k,v])=>k+' '+v+'%').join(' / ')}</td><td>${l.diff_total??'—'}</td><td>${l.converged?'✓':'—'}</td></tr>`).join('');
+  const agentRows = (e.agent_results||[]).map(a=>`<tr><td>${a.agent}</td><td>${a.channel}</td><td>${a.estimated_cpa}</td><td>${a.availability}</td><td>${a.suggested_role}</td><td>${a.negotiation_note||'—'}</td></tr>`).join('');
+  const hdlSection = e.human_decision_options?.length?`<h2>Human Decision Layer</h2><p class="note">Stable Trade-off detected — 以下の3案から最終方針を選択してください。</p><table><tr><th>Option</th><th>Allocation</th><th>Best for</th><th>Risk</th></tr>${e.human_decision_options.map(o=>`<tr><td><strong>${o.label}</strong><br><small>${o.description}</small></td><td>${Object.entries(o.allocation).map(([k,v])=>k+' '+v+'%').join(' / ')}</td><td>${o.best_for}</td><td>${o.risk}</td></tr>`).join('')}</table>`:'';
+  const statusCls = e.readiness.status==='Converged'?'converged':e.readiness.status==='Stable Trade-off'?'tradeoff':'notconv';
+  const html=`<html><head><meta charset="UTF-8"><title>AdCP Execution Lab v1.1 Result</title><style>body{font-family:'Helvetica Neue',Arial,sans-serif;margin:36px 48px;color:#111;font-size:13px;line-height:1.6}h1{font-size:22px;font-weight:900;margin:0 0 4px;letter-spacing:-.02em}.meta{color:#888;font-size:11px;margin-bottom:28px}h2{font-size:13px;font-weight:900;margin:24px 0 8px;padding-bottom:4px;border-bottom:2px solid #111;text-transform:uppercase;letter-spacing:.05em}table{border-collapse:collapse;width:100%;font-size:12px;margin-bottom:8px}td,th{border:1px solid #ddd;padding:7px 10px;vertical-align:top}th{background:#f5f5f5;font-weight:700;text-align:left}td.label{background:#fafafa;font-weight:700;width:28%;white-space:nowrap}.status-box{padding:12px 16px;border-radius:4px;font-weight:900;font-size:15px;margin-bottom:6px}.converged{background:#e6f9f0;border-left:4px solid #00875a;color:#00875a}.tradeoff{background:#fff8e1;border-left:4px solid #f59e0b;color:#b45309}.notconv{background:#fef2f2;border-left:4px solid #dc2626;color:#dc2626}.desc{color:#555;font-size:12px;margin-bottom:12px}.note{color:#888;font-size:11px;margin:4px 0 12px}.alloc-bar{display:flex;gap:12px;margin:10px 0 16px;font-size:15px;font-weight:900}@media print{body{margin:20px 28px}}</style></head><body><h1>AdCP Execution Lab v1.1 — Result</h1><div class="meta">Generated: ${generatedAt} | Final Intent: ${e.intent_type||'—'}</div><h2>Convergence Status</h2><div class="status-box ${statusCls}">${e.readiness.status}</div><div class="desc">${e.readiness.description}</div><div class="note">diff_final: ${e.readiness.diff_final??'—'} | reason: ${e.readiness.reason||'—'}</div><h2>Final Allocation</h2><div class="alloc-bar">${Object.entries(e.final_allocation).map(([k,v])=>`${k} <span style="color:#2a4fff">${v}%</span>`).join('　')}</div><table><tr><th>Channel</th><th>Allocation</th></tr>${Object.entries(e.final_allocation).map(([k,v])=>`<tr><td>${k}</td><td><strong>${v}%</strong></td></tr>`).join('')}</table><h2>Campaign Brief</h2><table>${briefRows||'<tr><td>—</td></tr>'}</table><h2>Strategy Summary</h2><table>${strategyRows||'<tr><td>—</td></tr>'}</table><h2>Intent</h2><table>${intentRows}</table><h2>Negotiation Loop Log</h2><table><tr><th>Step</th><th>Allocation</th><th>Diff Total</th><th>Converged</th></tr>${loopRows||'<tr><td colspan="4">—</td></tr>'}</table><h2>Agent Results</h2><table><tr><th>Agent</th><th>Channel</th><th>Est. CPA</th><th>Availability</th><th>Role</th><th>Note</th></tr>${agentRows||'<tr><td colspan="6">—</td></tr>'}</table>${hdlSection}</body></html>`;
   const w=window.open('','_blank');w.document.write(html);w.document.close();w.onload=()=>{w.focus();w.print()};
 }
 function loadSample(){
