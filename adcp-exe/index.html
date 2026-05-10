@@ -191,14 +191,18 @@ function currentCondition(){
     brief: document.getElementById('briefInput').value,
     strategy: document.getElementById('strategyInput').value,
     intent: document.getElementById('intentType').value,
-    strategy_obj: lastExport ? lastExport.strategy : null
+    strategy_obj: lastExport ? (lastExport.strategy_transfer || lastExport.strategy || null) : null
   };
 }
 function applyCondition(data){
   if(data.brief)    document.getElementById('briefInput').value    = data.brief;
   if(data.strategy) document.getElementById('strategyInput').value = data.strategy;
   if(data.intent)   document.getElementById('intentType').value    = data.intent;
-  if(data.strategy_obj && lastExport) lastExport.strategy = data.strategy_obj;
+  if(data.strategy_obj){
+    if(!lastExport) lastExport = {};
+    lastExport.strategy_transfer = data.strategy_obj;
+    lastExport.strategy = data.strategy_obj;
+  }
 }
 
 function openSlotManager(){
@@ -784,7 +788,7 @@ function downloadPDF(){
   if(!lastExport)return;
   const e = lastExport;
   const brief = e.source_brief || {};
-  const strategy = e.strategy || {};
+  const strategy = e.strategy_transfer || e.strategy || {};
   const loopLog = e.loop_log || [];
   const generatedAt = e.readiness?.generated_at ? e.readiness.generated_at.slice(0,16).replace('T',' ') : '—';
   const briefRows = [
