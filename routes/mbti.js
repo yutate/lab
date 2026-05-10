@@ -17,3 +17,10 @@ router.post("/debate", async (req, res) => {
 });
 
 module.exports = router;
+
+router.get("/debug", (req, res) => {
+  res.json({
+    hasKey: !!process.env.GEMINI_API_KEY,
+    keyPrefix: process.env.GEMINI_API_KEY?.slice(0,8) || 'none',
+  });
+});
