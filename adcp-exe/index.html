@@ -535,10 +535,10 @@ async function runNegotiationLoop(){
 async function checkExecutionA2A(brief, allocation, intentType){
   const payloadBase = { brief, allocation, intent_type:intentType };
   const rawResults = await Promise.all([
-    callAgent('/adcp/agent/google', {...payloadBase, allocation_pct: allocation.Google, channel:'Google'}),
-    callAgent('/adcp/agent/meta', {...payloadBase, allocation_pct: allocation.Meta, channel:'Meta'}),
-    callAgent('/adcp/agent/youtube', {...payloadBase, allocation_pct: allocation.YouTube, channel:'YouTube'}),
-    callAgent('/adcp/agent/tiktok', {...payloadBase, allocation_pct: allocation.TikTok, channel:'TikTok'})
+    callAgent('/adcp/adcp/agent/google', {...payloadBase, allocation_pct: allocation.Google, channel:'Google'}),
+    callAgent('/adcp/adcp/agent/meta', {...payloadBase, allocation_pct: allocation.Meta, channel:'Meta'}),
+    callAgent('/adcp/adcp/agent/youtube', {...payloadBase, allocation_pct: allocation.YouTube, channel:'YouTube'}),
+    callAgent('/adcp/adcp/agent/tiktok', {...payloadBase, allocation_pct: allocation.TikTok, channel:'TikTok'})
   ]);
   return rawResults.map(r=>normalizeAgentResponse(r, allocation));
 }
