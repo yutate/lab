@@ -190,13 +190,15 @@ function currentCondition(){
   return {
     brief: document.getElementById('briefInput').value,
     strategy: document.getElementById('strategyInput').value,
-    intent: document.getElementById('intentType').value
+    intent: document.getElementById('intentType').value,
+    strategy_obj: lastExport ? lastExport.strategy : null
   };
 }
 function applyCondition(data){
   if(data.brief)    document.getElementById('briefInput').value    = data.brief;
   if(data.strategy) document.getElementById('strategyInput').value = data.strategy;
   if(data.intent)   document.getElementById('intentType').value    = data.intent;
+  if(data.strategy_obj && lastExport) lastExport.strategy = data.strategy_obj;
 }
 
 function openSlotManager(){
