@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MBTI Debate Chamber</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FFF9F0;
+    --card: #ffffff;
+    --text: #2D2A3E;
+    --muted: #8B8599;
+    --border: #E8E3F0;
+    --NT: #6C63FF; --NT-light: #EEF0FF;
+    --NF: #FF6B9D; --NF-light: #FFF0F6;
+    --SJ: #00C9A7; --SJ-light: #E6FBF7;
+    --SP: #FFB800; --SP-light: #FFF8E6;
+    --radius: 16px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Nunito','Noto Sans JP',sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+  body::before { content:''; position:fixed; top:-200px; right:-200px; width:600px; height:600px; border-radius:50%; background:radial-gradient(circle,#FFE0F4 0%,transparent 70%); pointer-events:none; z-index:0; }
+  body::after  { content:''; position:fixed; bottom:-150px; left:-150px; width:500px; height:500px; border-radius:50%; background:radial-gradient(circle,#E0EEFF 0%,transparent 70%); pointer-events:none; z-index:0; }
+  .container { max-width:960px; margin:0 auto; padding:40px 20px; position:relative; z-index:1; }
+
+  header { text-align:center; margin-bottom:40px; }
+  .logo { font-family:'Fredoka One',cursive; font-size:3rem; background:linear-gradient(135deg,#6C63FF,#FF6B9D,#FFB800); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .tagline { font-size:.95rem; color:var(--muted); margin-top:6px; font-weight:600; }
+
+  .panel { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:28px; margin-bottom:24px; border:2px solid var(--border); }
+  .panel-title { font-family:'Fredoka One',cursive; font-size:1.2rem; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+
+  textarea { width:100%; padding:16px; border:2px solid var(--border); border-radius:12px; font-family:'Nunito','Noto Sans JP',sans-serif; font-size:1rem; resize:vertical; min-height:90px; background:#FAFAFE; color:var(--text); transition:border-color .2s; }
+  textarea:focus { outline:none; border-color:var(--NT); }
+
+  .mode-toggle { display:flex; gap:10px; margin-bottom:20px; }
+  .mode-btn { flex:1; padding:12px; border:2px solid var(--border); border-radius:12px; background:white; font-family:'Fredoka One',cursive; font-size:1rem; cursor:pointer; transition:all .2s; text-align:center; }
+  .mode-btn.active { border-color:var(--NT); background:var(--NT-light); color:var(--NT); }
+  .mode-btn:hover:not(.active) { background:#f8f8f8; }
+
+  .random-controls { display:flex; align-items:center; gap:16px; padding:16px; background:var(--NT-light); border-radius:12px; margin-bottom:16px; }
+  .random-label { font-weight:800; font-size:.9rem; color:var(--NT); }
+  input[type="range"] { flex:1; accent-color:var(--NT); }
+  .random-count { font-family:'Fredoka One',cursive; font-size:1.6rem; color:var(--NT); min-width:32px; text-align:center; }
+
+  .group-label { font-family:'Fredoka One',cursive; font-size:.85rem; letter-spacing:1px; margin:14px 0 8px; padding:4px 10px; border-radius:20px; display:inline-block; }
+  .group-NT { background:var(--NT-light); color:var(--NT); }
+  .group-NF { background:var(--NF-light); color:var(--NF); }
+  .group-SJ { background:var(--SJ-light); color:var(--SJ); }
+  .group-SP { background:var(--SP-light); color:var(--SP); }
+
+  .mbti-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .type-chip { border:2px solid var(--border); border-radius:12px; padding:10px 8px; text-align:center; cursor:pointer; transition:all .15s; background:white; user-select:none; }
+  .type-chip .type-emoji { font-size:1.2rem; display:block; }
+  .type-chip .type-code { font-family:'Fredoka One',cursive; font-size:1rem; display:block; }
+  .type-chip .type-nick { font-size:.65rem; color:var(--muted); font-weight:700; }
+  .type-chip.sel-NT { border-color:var(--NT); background:var(--NT-light); }
+  .type-chip.sel-NF { border-color:var(--NF); background:var(--NF-light); }
+  .type-chip.sel-SJ { border-color:var(--SJ); background:var(--SJ-light); }
+  .type-chip.sel-SP { border-color:var(--SP); background:var(--SP-light); }
+  .type-chip.sel-NT .type-code { color:var(--NT); }
+  .type-chip.sel-NF .type-code { color:var(--NF); }
+  .type-chip.sel-SJ .type-code { color:var(--SJ); }
+  .type-chip.sel-SP .type-code { color:var(--SP); }
+
+  .select-actions { display:flex; gap:8px; margin-top:12px; }
+  .link-btn { font-size:.8rem; font-weight:700; color:var(--muted); cursor:pointer; padding:4px 10px; border-radius:8px; border:1px solid var(--border); background:white; transition:all .15s; }
+  .link-btn:hover { background:var(--border); }
+  .selected-count { font-size:.85rem; font-weight:700; color:var(--NT); margin-top:10px; }
+
+  .start-btn { width:100%; padding:18px; border:none; border-radius:14px; font-family:'Fredoka One',cursive; font-size:1.3rem; cursor:pointer; background:linear-gradient(135deg,#6C63FF,#FF6B9D); color:white; letter-spacing:1px; transition:all .2s; box-shadow:0 6px 20px rgba(108,99,255,.35); }
+  .start-btn:hover { transform:translateY(-2px); box-shadow:0 10px 28px rgba(108,99,255,.45); }
+  .start-btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+
+  .progress-area { display:none; margin-bottom:24px; }
+  .progress-area.visible { display:block; }
+  .progress-header { font-family:'Fredoka One',cursive; font-size:1.1rem; margin-bottom:12px; color:var(--NT); }
+  .agent-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px; }
+  .agent-card { border:2px solid var(--border); border-radius:10px; padding:10px 8px; text-align:center; font-size:.8rem; font-weight:700; background:white; transition:all .3s; }
+  .agent-card .a-emoji { font-size:1.2rem; display:block; }
+  .agent-card .a-name { font-family:'Fredoka One',cursive; display:block; margin:2px 0; }
+  .agent-card .a-state { font-size:.65rem; color:var(--muted); }
+  .agent-card.thinking { border-color:var(--SP); background:var(--SP-light); animation:pulse .8s infinite; }
+  .agent-card.done { border-color:var(--SJ); background:var(--SJ-light); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.7} }
+
+  .results-area { display:none; }
+  .results-area.visible { display:block; }
+
+  .convergence-panel { border:3px solid; border-radius:16px; padding:24px; margin-bottom:24px; text-align:center; }
+  .convergence-panel.converged { border-color:var(--SJ); background:var(--SJ-light); }
+  .convergence-panel.stable    { border-color:var(--SP); background:var(--SP-light); }
+  .convergence-panel.diverged  { border-color:var(--NF); background:var(--NF-light); }
+  .convergence-icon  { font-size:3rem; display:block; margin-bottom:8px; }
+  .convergence-label { font-family:'Fredoka One',cursive; font-size:1.4rem; margin-bottom:12px; }
+  .convergence-text  { font-size:.95rem; line-height:1.7; }
+  .proposal-box { margin-top:14px; background:white; border-radius:10px; padding:14px 16px; font-size:.9rem; line-height:1.7; border-left:4px solid var(--SJ); text-align:left; }
+  .axis-list { margin-top:16px; text-align:left; }
+  .axis-item { background:white; border-radius:10px; padding:12px 16px; margin-bottom:8px; font-size:.9rem; border-left:4px solid var(--SP); font-weight:700; }
+  .axis-item span { font-weight:400; color:var(--muted); display:block; margin-top:2px; font-size:.82rem; }
+
+  .tab-bar { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .tab-btn { padding:8px 16px; border:2px solid var(--border); border-radius:20px; background:white; font-family:'Fredoka One',cursive; font-size:.9rem; cursor:pointer; transition:all .2s; color:var(--muted); }
+  .tab-btn.active { border-color:var(--NT); background:var(--NT-light); color:var(--NT); }
+  .tab-content { display:none; }
+  .tab-content.active { display:block; }
+
+  .opinion-card { border:2px solid var(--border); border-radius:14px; padding:18px; margin-bottom:12px; background:white; position:relative; overflow:hidden; transition:box-shadow .2s; }
+  .opinion-card:hover { box-shadow:var(--shadow); }
+  .opinion-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; border-radius:4px 0 0 4px; }
+  .opinion-card.NT::before { background:var(--NT); }
+  .opinion-card.NF::before { background:var(--NF); }
+  .opinion-card.SJ::before { background:var(--SJ); }
+  .opinion-card.SP::before { background:var(--SP); }
+  .opinion-meta { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .opinion-avatar { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.3rem; flex-shrink:0; }
+  .avatar-NT { background:var(--NT-light); }
+  .avatar-NF { background:var(--NF-light); }
+  .avatar-SJ { background:var(--SJ-light); }
+  .avatar-SP { background:var(--SP-light); }
+  .opinion-name { font-family:'Fredoka One',cursive; font-size:1rem; }
+  .opinion-nick { font-size:.75rem; color:var(--muted); font-weight:700; }
+  .opinion-body { font-size:.92rem; line-height:1.7; }
+  .opinion-stance { display:inline-block; font-size:.7rem; font-weight:800; padding:2px 8px; border-radius:8px; margin-left:auto; flex-shrink:0; }
+  .stance-for     { background:#E6FBF7; color:var(--SJ); }
+  .stance-against { background:#FFE9F0; color:#FF4081; }
+  .stance-neutral { background:#F0F0F8; color:var(--muted); }
+  .round-badge { font-size:.75rem; padding:4px 12px; border-radius:20px; background:linear-gradient(135deg,#6C63FF,#FF6B9D); color:white; }
+
+  /* Continue debate */
+  .continue-panel { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:24px; margin-bottom:24px; border:2px dashed var(--NT); }
+  .continue-title { font-family:'Fredoka One',cursive; font-size:1.1rem; color:var(--NT); margin-bottom:12px; }
+  .continue-hint { font-size:.85rem; color:var(--muted); margin-bottom:12px; }
+  .continue-input { width:100%; padding:12px; border:2px solid var(--border); border-radius:10px; font-family:'Nunito','Noto Sans JP',sans-serif; font-size:.9rem; background:#FAFAFE; resize:none; min-height:60px; }
+  .continue-input:focus { outline:none; border-color:var(--NT); }
+  .continue-btn { margin-top:10px; padding:12px 24px; border:none; border-radius:12px; font-family:'Fredoka One',cursive; font-size:1rem; cursor:pointer; background:linear-gradient(135deg,#6C63FF,#FF6B9D); color:white; transition:all .2s; }
+  .continue-btn:hover { transform:translateY(-1px); }
+  .continue-btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+
+  /* Action buttons */
+  .action-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:24px; }
+  .action-btn { flex:1; min-width:120px; padding:12px; border-radius:12px; font-family:'Fredoka One',cursive; font-size:.95rem; cursor:pointer; transition:all .2s; text-align:center; }
+  .btn-pdf { border:2px solid #FF6B9D; color:#FF6B9D; background:white; }
+  .btn-pdf:hover { background:var(--NF-light); }
+  .btn-restart { border:2px solid var(--NT); color:var(--NT); background:white; }
+  .btn-restart:hover { background:var(--NT-light); }
+
+  .error-box { background:#FFE9F0; border:2px solid #FF4081; border-radius:12px; padding:16px; font-size:.9rem; margin-bottom:16px; display:none; }
+  .error-box.visible { display:block; }
+
+  .round-info { font-size:.8rem; color:var(--muted); font-weight:700; margin-bottom:8px; }
+
+  @media(max-width:600px) {
+    .logo { font-size:2rem; }
+    .mbti-grid { grid-template-columns:repeat(4,1fr); gap:6px; }
+    .type-chip { padding:8px 4px; }
+    .type-chip .type-emoji { font-size:1rem; }
+    .type-chip .type-code { font-size:.85rem; }
+    .action-row { flex-direction:column; }
+  }
+
+  /* Print styles for PDF */
+  @media print {
+    body { background:white; }
+    body::before, body::after { display:none; }
+    .setup-panel, .progress-area, .continue-panel, .action-row, .tab-bar { display:none !important; }
+    .results-area { display:block !important; }
+    .tab-content { display:block !important; }
+    .panel { box-shadow:none; border:1px solid #ddd; page-break-inside:avoid; }
+    .opinion-card { page-break-inside:avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <div class="logo">🧠 MBTI Debate Chamber</div>
+  <div class="tagline">16タイプのペルソナがトピックを多角的に議論する思考ツール</div>
+</header>
+
+<!-- Setup -->
+<div id="setupPanel" class="setup-panel">
+  <div class="panel">
+    <div class="panel-title">💬 議題を入力</div>
+    <textarea id="topicInput" placeholder="例：リモートワークを全社員に義務化すべきか？"></textarea>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">🎲 参加タイプの選び方</div>
+    <div class="mode-toggle">
+      <button class="mode-btn active" onclick="setMode('random')" id="modeRandom">🎲 ランダム</button>
+      <button class="mode-btn" onclick="setMode('manual')" id="modeManual">✋ 手動で選ぶ</button>
+    </div>
+
+    <div id="randomControls" class="random-controls">
+      <span class="random-label">参加人数</span>
+      <input type="range" id="countSlider" min="3" max="12" value="6" oninput="updateCount(this.value)">
+      <span class="random-count" id="countDisplay">6</span>
+      <span class="random-label">タイプ</span>
+    </div>
+
+    <div id="manualControls" style="display:none">
+      <div class="group-label group-NT">🔬 NT（分析家）</div>
+      <div class="mbti-grid" id="gridNT"></div>
+      <div class="group-label group-NF">💖 NF（外交官）</div>
+      <div class="mbti-grid" id="gridNF"></div>
+      <div class="group-label group-SJ">📋 SJ（番人）</div>
+      <div class="mbti-grid" id="gridSJ"></div>
+      <div class="group-label group-SP">⚡ SP（探検家）</div>
+      <div class="mbti-grid" id="gridSP"></div>
+      <div class="select-actions">
+        <button class="link-btn" onclick="selectAll()">全選択</button>
+        <button class="link-btn" onclick="selectNone()">全解除</button>
+        <button class="link-btn" onclick="selectRandom()">ランダム6</button>
+      </div>
+      <div class="selected-count" id="selectedCount">0 タイプ選択中</div>
+    </div>
+  </div>
+
+  <div class="error-box" id="errorBox"></div>
+  <button class="start-btn" onclick="startDebate()">🚀 ディベート開始！</button>
+</div>
+
+<!-- Progress -->
+<div class="progress-area" id="progressArea">
+  <div class="panel">
+    <div class="progress-header" id="progressHeader">⚡ 議論中...</div>
+    <div class="agent-grid" id="agentGrid"></div>
+  </div>
+</div>
+
+<!-- Results -->
+<div class="results-area" id="resultsArea">
+  <div id="convergencePanel"></div>
+
+  <div class="panel">
+    <div class="tab-bar" id="tabBar"></div>
+    <div id="tabContents"></div>
+  </div>
+
+  <!-- Continue -->
+  <div class="continue-panel" id="continuePanel">
+    <div class="continue-title">🔄 議論を続ける</div>
+    <div class="continue-hint">論点を絞ったり、新たな視点を加えて議論を深められます（任意）</div>
+    <textarea class="continue-input" id="continueHint" placeholder="例：コスト面に絞って議論してほしい（空欄でもOK）"></textarea>
+    <button class="continue-btn" id="continueBtn" onclick="continueDebate()">⚡ Round <span id="nextRound">3</span> へ</button>
+  </div>
+
+  <div class="action-row">
+    <button class="action-btn btn-pdf" onclick="exportPDF()">📄 PDFで保存</button>
+    <button class="action-btn btn-restart" onclick="restart()">🔄 別のトピックで試す</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+const SERVER = 'https://lab-production-d6e6.up.railway.app';
+
+const TYPES = {
+  INTJ:{emoji:'🏰',nick:'建築家',group:'NT'},
+  INTP:{emoji:'🔭',nick:'論理学者',group:'NT'},
+  ENTJ:{emoji:'👑',nick:'指揮官',group:'NT'},
+  ENTP:{emoji:'🎭',nick:'討論者',group:'NT'},
+  INFJ:{emoji:'🌙',nick:'提唱者',group:'NF'},
+  INFP:{emoji:'🌸',nick:'仲介者',group:'NF'},
+  ENFJ:{emoji:'🌟',nick:'主人公',group:'NF'},
+  ENFP:{emoji:'🎆',nick:'運動家',group:'NF'},
+  ISTJ:{emoji:'📚',nick:'管理者',group:'SJ'},
+  ISFJ:{emoji:'🛡️',nick:'擁護者',group:'SJ'},
+  ESTJ:{emoji:'⚖️',nick:'幹部',group:'SJ'},
+  ESFJ:{emoji:'🤝',nick:'領事',group:'SJ'},
+  ISTP:{emoji:'🔧',nick:'巨匠',group:'SP'},
+  ISFP:{emoji:'🎨',nick:'冒険家',group:'SP'},
+  ESTP:{emoji:'⚡',nick:'起業家',group:'SP'},
+  ESFP:{emoji:'🎉',nick:'エンターテイナー',group:'SP'},
+};
+const GROUP_ORDER = {
+  NT:['INTJ','INTP','ENTJ','ENTP'],
+  NF:['INFJ','INFP','ENFJ','ENFP'],
+  SJ:['ISTJ','ISFJ','ESTJ','ESFJ'],
+  SP:['ISTP','ISFP','ESTP','ESFP'],
+};
+
+let mode = 'random';
+let selectedTypes = new Set();
+let debateCount = 6;
+let currentTopic = '';
+let currentParticipants = [];
+let currentRound = 0;
+let allRounds = []; // [{round, opinions, convergence}]
+let history = [];  // サーバーに渡す履歴
+
+// ── Init ──
+function init() {
+  ['NT','NF','SJ','SP'].forEach(g => {
+    const grid = document.getElementById('grid'+g);
+    GROUP_ORDER[g].forEach(code => {
+      const t = TYPES[code];
+      const chip = document.createElement('div');
+      chip.className = 'type-chip';
+      chip.id = 'chip-'+code;
+      chip.innerHTML = `<span class="type-emoji">${t.emoji}</span><span class="type-code">${code}</span><span class="type-nick">${t.nick}</span>`;
+      chip.onclick = () => toggleType(code);
+      grid.appendChild(chip);
+    });
+  });
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('modeRandom').classList.toggle('active', m==='random');
+  document.getElementById('modeManual').classList.toggle('active', m==='manual');
+  document.getElementById('randomControls').style.display = m==='random'?'flex':'none';
+  document.getElementById('manualControls').style.display = m==='manual'?'block':'none';
+}
+function updateCount(v) { debateCount=parseInt(v); document.getElementById('countDisplay').textContent=v; }
+function toggleType(code) {
+  if(selectedTypes.has(code)) { selectedTypes.delete(code); document.getElementById('chip-'+code).className='type-chip'; }
+  else { selectedTypes.add(code); document.getElementById('chip-'+code).className=`type-chip sel-${TYPES[code].group}`; }
+  document.getElementById('selectedCount').textContent=selectedTypes.size+' タイプ選択中';
+}
+function selectAll() { Object.keys(TYPES).forEach(c=>{selectedTypes.add(c);document.getElementById('chip-'+c).className=`type-chip sel-${TYPES[c].group}`;}); document.getElementById('selectedCount').textContent=selectedTypes.size+' タイプ選択中'; }
+function selectNone() { selectedTypes.clear(); Object.keys(TYPES).forEach(c=>{document.getElementById('chip-'+c).className='type-chip';}); document.getElementById('selectedCount').textContent='0 タイプ選択中'; }
+function selectRandom() { selectNone(); Object.keys(TYPES).sort(()=>Math.random()-.5).slice(0,6).forEach(c=>toggleType(c)); }
+function getParticipants() {
+  if(mode==='random') return Object.keys(TYPES).sort(()=>Math.random()-.5).slice(0,debateCount);
+  return Array.from(selectedTypes);
+}
+
+// ── Progress UI ──
+function showProgress(participants, header) {
+  document.getElementById('progressHeader').textContent = header;
+  const grid = document.getElementById('agentGrid');
+  grid.innerHTML = '';
+  participants.forEach(code => {
+    const t = TYPES[code];
+    const el = document.createElement('div');
+    el.className = 'agent-card thinking';
+    el.id = 'ac-'+code;
+    el.innerHTML = `<span class="a-emoji">${t.emoji}</span><span class="a-name">${code}</span><span class="a-state">考え中...</span>`;
+    grid.appendChild(el);
+  });
+  document.getElementById('progressArea').classList.add('visible');
+}
+function markDone(code) {
+  const el = document.getElementById('ac-'+code);
+  if(el) { el.classList.remove('thinking'); el.classList.add('done'); el.querySelector('.a-state').textContent='✓ 完了'; }
+}
+
+// ── API ──
+async function callDebate(topic, participants, round, history) {
+  const res = await fetch(`${SERVER}/mbti/debate`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({topic, participants, round, history})
+  });
+  if(!res.ok) throw new Error(`Server error ${res.status}`);
+  return res.json();
+}
+
+// ── Start ──
+async function startDebate() {
+  const topic = document.getElementById('topicInput').value.trim();
+  if(!topic) { showError('議題を入力してください。'); return; }
+  const participants = getParticipants();
+  if(participants.length < 2) { showError('2タイプ以上を選択してください。'); return; }
+  hideError();
+
+  currentTopic = topic;
+  currentParticipants = participants;
+  currentRound = 1;
+  allRounds = [];
+  history = [];
+
+  document.getElementById('setupPanel').style.display = 'none';
+  document.getElementById('resultsArea').classList.remove('visible');
+  showProgress(participants, '⚡ Round 1: 各タイプが立場を表明中...');
+
+  // Round 1（サーバー1回呼び出し）
+  try {
+    const result = await callDebate(topic, participants, 1, []);
+    result.opinions.forEach(o => markDone(o.type));
+    history = result.opinions;
+    allRounds.push(result);
+  } catch(e) {
+    showError('サーバーエラー: '+e.message);
+    document.getElementById('setupPanel').style.display='block';
+    document.getElementById('progressArea').classList.remove('visible');
+    return;
+  }
+
+  // Round 2
+  document.getElementById('progressHeader').textContent = '🔥 Round 2: 他タイプの意見に反応中...';
+  participants.forEach(code => {
+    const el = document.getElementById('ac-'+code);
+    if(el) { el.classList.remove('done'); el.classList.add('thinking'); el.querySelector('.a-state').textContent='反応中...'; }
+  });
+
+  try {
+    const result2 = await callDebate(topic, participants, 2, history);
+    result2.opinions.forEach(o => markDone(o.type));
+    history = [...history, ...result2.opinions];
+    allRounds.push(result2);
+  } catch(e) {
+    showError('サーバーエラー: '+e.message);
+    return;
+  }
+
+  currentRound = 2;
+  document.getElementById('progressArea').classList.remove('visible');
+  renderResults();
+}
+
+// ── Continue ──
+async function continueDebate() {
+  const hint = document.getElementById('continueHint').value.trim();
+  const nextRound = currentRound + 1;
+  const topic = hint ? `${currentTopic}（追加論点：${hint}）` : currentTopic;
+
+  document.getElementById('continueBtn').disabled = true;
+  document.getElementById('resultsArea').classList.remove('visible');
+  showProgress(currentParticipants, `🔥 Round ${nextRound}: 議論継続中...`);
+
+  try {
+    const result = await callDebate(topic, currentParticipants, nextRound, history);
+    result.opinions.forEach(o => markDone(o.type));
+    history = [...history, ...result.opinions];
+    allRounds.push(result);
+    currentRound = nextRound;
+  } catch(e) {
+    showError('サーバーエラー: '+e.message);
+    document.getElementById('continueBtn').disabled = false;
+    return;
+  }
+
+  document.getElementById('progressArea').classList.remove('visible');
+  document.getElementById('continueHint').value = '';
+  document.getElementById('continueBtn').disabled = false;
+  renderResults();
+}
+
+// ── Render ──
+function renderResults() {
+  const lastRound = allRounds[allRounds.length-1];
+  const conv = lastRound.convergence;
+
+  // Convergence
+  const statusMap = {
+    converged:{ cls:'converged', icon:'🎯', label:'Converged — 合意形成' },
+    stable:   { cls:'stable',    icon:'⚖️', label:'Stable Trade-off — 対立軸が明確' },
+    diverged: { cls:'diverged',  icon:'🌀', label:'Not Converged — 議論継続中' },
+  };
+  const s = statusMap[conv.status] || statusMap.stable;
+  let axesHtml = '';
+  if(conv.axes && conv.axes.length) {
+    axesHtml = '<div class="axis-list">'+conv.axes.map(a=>{
+      const [title,...rest] = a.split('：');
+      return `<div class="axis-item">${title}${rest.length?`<span>${rest.join('：')}</span>`:''}</div>`;
+    }).join('')+'</div>';
+  }
+  document.getElementById('convergencePanel').innerHTML = `
+    <div class="convergence-panel ${s.cls}">
+      <span class="convergence-icon">${s.icon}</span>
+      <div class="convergence-label">${s.label}</div>
+      <div class="convergence-text">${conv.summary}</div>
+      ${conv.proposal ? `<div class="proposal-box">💡 <strong>合意案：</strong>${conv.proposal}</div>` : ''}
+      ${axesHtml}
+    </div>
+  `;
+
+  // Tabs
+  const tabBar = document.getElementById('tabBar');
+  const tabContents = document.getElementById('tabContents');
+  tabBar.innerHTML = '';
+  tabContents.innerHTML = '';
+
+  allRounds.forEach((r,i) => {
+    const id = 'r'+(i+1);
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn' + (i===allRounds.length-1?' active':'');
+    btn.innerHTML = `Round ${i+1} ${i===0?'💬':i===1?'🔥':'⚡'} <span class="round-badge">${r.convergence.tally.for}賛成 / ${r.convergence.tally.against}反対</span>`;
+    btn.onclick = () => switchTab(id, btn);
+    tabBar.appendChild(btn);
+
+    const content = document.createElement('div');
+    content.className = 'tab-content' + (i===allRounds.length-1?' active':'');
+    content.id = 'tab-'+id;
+    content.innerHTML = renderOpinions(r.opinions);
+    tabContents.appendChild(content);
+  });
+
+  // Continue button
+  document.getElementById('nextRound').textContent = currentRound + 1;
+  document.getElementById('continuePanel').style.display = conv.status === 'converged' ? 'none' : 'block';
+
+  document.getElementById('resultsArea').classList.add('visible');
+}
+
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+}
+
+function renderOpinions(opinions) {
+  return opinions.map(o => {
+    const t = TYPES[o.type] || {};
+    const stanceHtml = o.stance==='for'
+      ? '<span class="opinion-stance stance-for">賛成</span>'
+      : o.stance==='against'
+      ? '<span class="opinion-stance stance-against">反対</span>'
+      : '<span class="opinion-stance stance-neutral">条件付き</span>';
+    return `
+      <div class="opinion-card ${o.group||t.group}">
+        <div class="opinion-meta">
+          <div class="opinion-avatar avatar-${o.group||t.group}">${t.emoji||'🧠'}</div>
+          <div>
+            <div class="opinion-name">${o.type} <span style="font-size:.8rem;font-weight:400;color:var(--muted)">${t.nick||''}</span></div>
+          </div>
+          ${stanceHtml}
+        </div>
+        <div class="opinion-body">${o.statement}</div>
+      </div>`;
+  }).join('');
+}
+
+// ── PDF ──
+function exportPDF() {
+  window.print();
+}
+
+// ── Restart ──
+function restart() {
+  document.getElementById('setupPanel').style.display = 'block';
+  document.getElementById('resultsArea').classList.remove('visible');
+  document.getElementById('progressArea').classList.remove('visible');
+  allRounds = []; history = []; currentRound = 0;
+}
+
+function showError(msg) { const el=document.getElementById('errorBox'); el.textContent='⚠️ '+msg; el.classList.add('visible'); }
+function hideError() { document.getElementById('errorBox').classList.remove('visible'); }
+
+init();
+</script>
+</body>
+</html>
