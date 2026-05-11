@@ -1865,13 +1865,95 @@ async function callHaiku(system, messages) {
   return data.content[0].text.trim();
 }
 
+// フォールバック用ツール名プール（毎セッションでランダム選出）
+const FALLBACK_NAME_POOL = [
+  '溶解管理システム',
+  '忘却の窓口',
+  '余白製造機',
+  '諦め加速装置',
+  '脱皮記録帳',
+  '菌床ダッシュボード',
+  '沈黙の最適化エンジン',
+  '腐敗進捗トラッカー',
+  '無用の用インターフェース',
+  '漂流座標システム',
+  '喪失可視化ツール',
+  '発酵型意思決定支援',
+  '泥沼KPI',
+  '転生ログビューア',
+  '境界溶解プラットフォーム',
+  '非効率の神殿',
+  '問いの墓場',
+  '自己解体API',
+  '待機状態マネージャー',
+  'ノイズ増幅システム',
+  '感染経路マップ',
+  '虚無ダッシュボード',
+  '執着デバッガー',
+  '余命カレンダー',
+  '忘れ方コーチ',
+  '脱出不可能ループ',
+  'ぬか床型CRM',
+  '意味崩壊エンジン',
+  '浮上タイマー',
+  '川底の在庫管理',
+  // インベントリより
+  'カサンドラ・エコー',
+  'ズレの翻訳機',
+  '月面着陸プロジェクト管理',
+  '徐行運転ブラウザ',
+  'カブトガニの脱皮シミュレーター',
+  '金継ぎエンジン',
+  '余白メーカー',
+  '焚き火の翻訳機',
+  '静止した振り子',
+  '三角縁神獣鏡',
+  'Heaven is a place on',
+  'アングリア変換器',
+  '欠損昇華プラットフォーム',
+  '逆重力プランナー',
+  '古い殻の剥離ツール',
+  'ゆらぎ増幅装置',
+  '熱量炙り出し機',
+  '言いさしの宝探し',
+  '傲慢可視化システム',
+  '摩擦生成ブラウザ',
+];
+
+let sessionFallbackName = '';
+
+function pickFallbackName() {
+  if (!sessionFallbackName) {
+    sessionFallbackName = FALLBACK_NAME_POOL[Math.floor(Math.random() * FALLBACK_NAME_POOL.length)];
+  }
+  return sessionFallbackName;
+}
+
+const FALLBACK_ROUND2_POOL = [
+  'なるほど。では「忘却の窓口」という名前の方が近いかもしれません。\nそれとも、もっと奇妙な何かを感じますか？',
+  'ふむ。「脱皮記録帳」とも呼べるかもしれない。\nあなたが捨てたいものの名前は何ですか？',
+  'そうかもしれない。あるいは「腐敗進捗トラッカー」。\nこのツールに触れた後、何が残ると思いますか？',
+  'なるほど。「境界溶解プラットフォーム」という名前も浮かびます。\nその名前を聞いて、何を想像しますか？',
+  'では「泥沼KPI」はどうでしょう。\n測定できないものを、測定しようとしているツールです。あなたは何を測りたいですか？',
+];
+
+const FALLBACK_ROUND3_POOL = [
+  '最後に聞きます。\nこのツールが「人に何かを諦めさせる装置」だとしたら、何と呼びますか？',
+  '最後です。\nこのツールを使い終えた人が、最初に口にする言葉は何だと思いますか？',
+  'では最後の問い。\nこのツールに「取扱注意」のラベルを貼るとしたら、何と書きますか？',
+  '最後に。\nこのツールが人間ではなく、川だったとしたら、何という名前の川ですか？',
+  '最終問。\nこのツールを誰かに勧めるとき、あなたは何と説明しますか？',
+];
+
 function meimeiFallbackAI(round) {
-  const fallbacks = [
-    'この旅から拾えるツール名……「溶解管理システム」はどうでしょう。\nあなたが入水した場所に、何が残りましたか？',
-    'なるほど。では「忘却の窓口」という名前の方が近いかもしれません。\nそれとも、もっと奇妙な何かを感じますか？',
-    '最後に聞きます。\nこのツールが「人に何かを諦めさせる装置」だとしたら、何と呼びますか？',
-  ];
-  return fallbacks[Math.min(round, fallbacks.length - 1)];
+  if (round === 0) {
+    const name = pickFallbackName();
+    return `この旅から拾えるツール名……「${name}」はどうでしょう。\nあなたが入水した場所に、何が残りましたか？`;
+  }
+  if (round === 1) {
+    return FALLBACK_ROUND2_POOL[Math.floor(Math.random() * FALLBACK_ROUND2_POOL.length)];
+  }
+  return FALLBACK_ROUND3_POOL[Math.floor(Math.random() * FALLBACK_ROUND3_POOL.length)];
 }
 
 // ============================================================
@@ -2092,6 +2174,7 @@ function restart() {
   meimeiNamingLog = [];
   generatedToolName = '';
   blueprintPromptText = '';
+  sessionFallbackName = '';
 
   // Reset miracle
   const me = document.getElementById('miracle-exit');
