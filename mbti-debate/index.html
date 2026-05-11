@@ -25,123 +25,29 @@
   body::after  { content:''; position:fixed; bottom:-150px; left:-150px; width:500px; height:500px; border-radius:50%; background:radial-gradient(circle,#E0EEFF 0%,transparent 70%); pointer-events:none; z-index:0; }
   .container { max-width:960px; margin:0 auto; padding:40px 20px; position:relative; z-index:1; }
 
-  /* ── Header ── */
   header { text-align:center; margin-bottom:24px; }
   .logo { font-family:'Fredoka One',cursive; font-size:3rem; background:linear-gradient(135deg,#6C63FF,#FF6B9D,#FFB800); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
   .tagline { font-size:.95rem; color:var(--muted); margin-top:6px; font-weight:600; }
 
   /* ── Accordion ── */
-  .about-accordion {
-    margin-bottom:28px;
-    border-radius:var(--radius);
-    border:2px solid var(--border);
-    background:var(--card);
-    box-shadow:var(--shadow);
-    overflow:hidden;
-  }
-  .about-trigger {
-    width:100%;
-    padding:16px 20px;
-    display:flex;
-    align-items:center;
-    gap:12px;
-    cursor:pointer;
-    background:none;
-    border:none;
-    text-align:left;
-    transition:background .15s;
-  }
+  .about-accordion { margin-bottom:28px; border-radius:var(--radius); border:2px solid var(--border); background:var(--card); box-shadow:var(--shadow); overflow:hidden; }
+  .about-trigger { width:100%; padding:16px 20px; display:flex; align-items:center; gap:12px; cursor:pointer; background:none; border:none; text-align:left; transition:background .15s; }
   .about-trigger:hover { background:#fafafa; }
-  .about-preview {
-    flex:1;
-    font-size:.9rem;
-    color:var(--muted);
-    font-weight:600;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
-  .about-trigger .about-icon { font-size:1.2rem; flex-shrink:0; }
-  .about-arrow {
-    font-size:.8rem;
-    color:var(--muted);
-    transition:transform .25s;
-    flex-shrink:0;
-  }
+  .about-preview { flex:1; font-size:.9rem; color:var(--muted); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .about-icon { font-size:1.2rem; flex-shrink:0; }
+  .about-arrow { font-size:.8rem; color:var(--muted); transition:transform .25s; flex-shrink:0; }
   .about-accordion.open .about-arrow { transform:rotate(180deg); }
-  .about-body {
-    max-height:0;
-    overflow:hidden;
-    transition:max-height .35s ease;
-  }
+  .about-body { max-height:0; overflow:hidden; transition:max-height .35s ease; }
   .about-accordion.open .about-body { max-height:600px; }
-  .about-content {
-    padding:0 24px 24px;
-    border-top:2px solid var(--border);
-  }
-  .about-lead {
-    font-size:1rem;
-    line-height:1.8;
-    color:var(--text);
-    margin-top:18px;
-    margin-bottom:20px;
-  }
-  .about-lead strong {
-    background:linear-gradient(135deg,#6C63FF,#FF6B9D);
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
-    background-clip:text;
-  }
-  .about-lead .about-quote {
-    display:block;
-    margin-top:12px;
-    font-style:italic;
-    color:var(--muted);
-    font-size:.92rem;
-  }
-  .about-how-title {
-    font-family:'Fredoka One',cursive;
-    font-size:1rem;
-    color:var(--NT);
-    margin-bottom:12px;
-  }
-  .about-how-list {
-    display:flex;
-    flex-direction:column;
-    gap:8px;
-  }
-  .about-how-item {
-    display:flex;
-    gap:10px;
-    align-items:flex-start;
-    font-size:.88rem;
-    line-height:1.6;
-    color:var(--text);
-  }
-  .about-how-item .how-icon {
-    flex-shrink:0;
-    width:26px;
-    height:26px;
-    border-radius:50%;
-    background:var(--NT-light);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:.8rem;
-    font-weight:800;
-    color:var(--NT);
-    margin-top:1px;
-  }
-  .about-note {
-    margin-top:16px;
-    padding:10px 14px;
-    background:var(--SP-light);
-    border-radius:10px;
-    font-size:.82rem;
-    color:var(--muted);
-    font-weight:700;
-    border-left:3px solid var(--SP);
-  }
+  .about-content { padding:0 24px 24px; border-top:2px solid var(--border); }
+  .about-lead { font-size:1rem; line-height:1.8; color:var(--text); margin-top:18px; margin-bottom:20px; }
+  .about-lead strong { background:linear-gradient(135deg,#6C63FF,#FF6B9D); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .about-quote { display:block; margin-top:12px; font-style:italic; color:var(--muted); font-size:.92rem; }
+  .about-how-title { font-family:'Fredoka One',cursive; font-size:1rem; color:var(--NT); margin-bottom:12px; }
+  .about-how-list { display:flex; flex-direction:column; gap:8px; }
+  .about-how-item { display:flex; gap:10px; align-items:flex-start; font-size:.88rem; line-height:1.6; }
+  .how-icon { flex-shrink:0; width:26px; height:26px; border-radius:50%; background:var(--NT-light); display:flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:800; color:var(--NT); margin-top:1px; }
+  .about-note { margin-top:16px; padding:10px 14px; background:var(--SP-light); border-radius:10px; font-size:.82rem; color:var(--muted); font-weight:700; border-left:3px solid var(--SP); }
 
   /* ── Panel ── */
   .panel { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:28px; margin-bottom:24px; border:2px solid var(--border); }
@@ -151,6 +57,19 @@
   textarea { width:100%; padding:16px; border:2px solid var(--border); border-radius:12px; font-family:'Nunito','Noto Sans JP',sans-serif; font-size:1rem; resize:vertical; min-height:90px; background:#FAFAFE; color:var(--text); transition:border-color .2s; }
   textarea:focus { outline:none; border-color:var(--NT); }
 
+  /* ── AI Mode Toggle ── */
+  .mode-panel { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:20px 24px; margin-bottom:24px; border:2px solid var(--border); display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .mode-label { font-family:'Fredoka One',cursive; font-size:1rem; flex:1; }
+  .mode-toggle-ai { display:flex; gap:8px; }
+  .mode-ai-btn { padding:10px 18px; border-radius:12px; font-family:'Fredoka One',cursive; font-size:.9rem; cursor:pointer; border:2px solid var(--border); background:white; color:var(--muted); transition:all .2s; }
+  .mode-ai-btn.active-rule { border-color:var(--SJ); background:var(--SJ-light); color:var(--SJ); }
+  .mode-ai-btn.active-ai { border-color:var(--NT); background:var(--NT-light); color:var(--NT); }
+  .mode-ai-btn:hover:not(.active-rule):not(.active-ai) { background:#f8f8f8; }
+  .ai-quota { font-size:.8rem; font-weight:700; color:var(--muted); }
+  .ai-quota.ok { color:var(--NT); }
+  .ai-quota.empty { color:#FF4081; }
+  .ai-badge { display:inline-block; font-size:.7rem; padding:2px 8px; border-radius:20px; background:linear-gradient(135deg,#6C63FF,#FF6B9D); color:white; font-weight:800; margin-left:6px; vertical-align:middle; }
+
   /* ── Category ── */
   .category-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
   .cat-btn { border:2px solid var(--border); border-radius:12px; padding:10px 8px; text-align:center; cursor:pointer; background:white; transition:all .15s; font-family:'Nunito','Noto Sans JP',sans-serif; font-size:.82rem; font-weight:700; color:var(--muted); }
@@ -158,11 +77,11 @@
   .cat-btn.active { border-color:var(--NT); background:var(--NT-light); color:var(--NT); }
   .cat-btn:hover:not(.active) { background:#f8f8f8; border-color:#ccc; }
 
-  /* ── Mode ── */
-  .mode-toggle { display:flex; gap:10px; margin-bottom:20px; }
-  .mode-btn { flex:1; padding:12px; border:2px solid var(--border); border-radius:12px; background:white; font-family:'Fredoka One',cursive; font-size:1rem; cursor:pointer; transition:all .2s; text-align:center; }
-  .mode-btn.active { border-color:var(--NT); background:var(--NT-light); color:var(--NT); }
-  .mode-btn:hover:not(.active) { background:#f8f8f8; }
+  /* ── Type Select ── */
+  .debate-mode-toggle { display:flex; gap:10px; margin-bottom:20px; }
+  .debate-mode-btn { flex:1; padding:12px; border:2px solid var(--border); border-radius:12px; background:white; font-family:'Fredoka One',cursive; font-size:1rem; cursor:pointer; transition:all .2s; text-align:center; }
+  .debate-mode-btn.active { border-color:var(--NT); background:var(--NT-light); color:var(--NT); }
+  .debate-mode-btn:hover:not(.active) { background:#f8f8f8; }
 
   .random-controls { display:flex; align-items:center; gap:16px; padding:16px; background:var(--NT-light); border-radius:12px; margin-bottom:16px; }
   .random-label { font-weight:800; font-size:.9rem; color:var(--NT); }
@@ -227,6 +146,10 @@
   .axis-item { background:white; border-radius:10px; padding:12px 16px; margin-bottom:8px; font-size:.9rem; border-left:4px solid var(--SP); font-weight:700; }
   .axis-item span { font-weight:400; color:var(--muted); display:block; margin-top:2px; font-size:.82rem; }
 
+  .result-mode-tag { display:inline-block; font-size:.75rem; font-weight:800; padding:3px 10px; border-radius:20px; margin-bottom:12px; }
+  .result-mode-tag.ai   { background:var(--NT-light); color:var(--NT); }
+  .result-mode-tag.rule { background:var(--SJ-light); color:var(--SJ); }
+
   .tab-bar { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
   .tab-btn { padding:8px 16px; border:2px solid var(--border); border-radius:20px; background:white; font-family:'Fredoka One',cursive; font-size:.9rem; cursor:pointer; transition:all .2s; color:var(--muted); }
   .tab-btn.active { border-color:var(--NT); background:var(--NT-light); color:var(--NT); }
@@ -254,6 +177,10 @@
   .stance-neutral { background:#F0F0F8; color:var(--muted); }
   .round-badge { font-size:.75rem; padding:4px 12px; border-radius:20px; background:linear-gradient(135deg,#6C63FF,#FF6B9D); color:white; }
 
+  /* ── Fallback notice ── */
+  .fallback-notice { background:var(--SP-light); border:2px solid var(--SP); border-radius:12px; padding:14px 16px; font-size:.88rem; margin-bottom:16px; display:none; }
+  .fallback-notice.visible { display:block; }
+
   /* ── Continue ── */
   .continue-panel { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:24px; margin-bottom:24px; border:2px dashed var(--NT); }
   .continue-title { font-family:'Fredoka One',cursive; font-size:1.1rem; color:var(--NT); margin-bottom:12px; }
@@ -264,7 +191,6 @@
   .continue-btn:hover { transform:translateY(-1px); }
   .continue-btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
 
-  /* ── Actions ── */
   .action-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:24px; }
   .action-btn { flex:1; min-width:120px; padding:12px; border-radius:12px; font-family:'Fredoka One',cursive; font-size:.95rem; cursor:pointer; transition:all .2s; text-align:center; }
   .btn-pdf { border:2px solid #FF6B9D; color:#FF6B9D; background:white; }
@@ -283,12 +209,13 @@
     .type-chip .type-code { font-size:.85rem; }
     .action-row { flex-direction:column; }
     .category-grid { grid-template-columns:repeat(3,1fr); }
+    .mode-panel { flex-direction:column; align-items:flex-start; }
   }
 
   @media print {
     body { background:white; }
     body::before, body::after { display:none; }
-    .about-accordion, .setup-panel, .progress-area, .continue-panel, .action-row, .tab-bar { display:none !important; }
+    .about-accordion, .setup-panel, .mode-panel, .progress-area, .continue-panel, .action-row, .tab-bar, .fallback-notice { display:none !important; }
     .results-area { display:block !important; }
     .tab-content { display:block !important; }
     .panel { box-shadow:none; border:1px solid #ddd; page-break-inside:avoid; }
@@ -333,14 +260,23 @@
           <span>全エージェントの意見が出揃った後、スタンスの分布から収束状態を判定します——Converged（合意）、Stable Trade-off（拮抗）、Not Converged（拡散）の3状態です。</span>
         </div>
       </div>
-      <div class="about-note">🔒 AIは使っていません。ルールベースで動いています。APIキー不要。</div>
+      <div class="about-note">🔒 デフォルトはルールベース（APIなし）。AIモードはGeminiを使用します（1日2回まで）。</div>
     </div>
   </div>
 </div>
 
+<!-- AI Mode Toggle -->
+<div class="mode-panel">
+  <div class="mode-label">🤖 エンジン選択</div>
+  <div class="mode-toggle-ai">
+    <button class="mode-ai-btn active-rule" id="btnRule" onclick="setAIMode('rule')">🔧 ルールベース</button>
+    <button class="mode-ai-btn" id="btnAI" onclick="setAIMode('ai')">✨ AIモード <span class="ai-badge">Beta</span></button>
+  </div>
+  <div class="ai-quota" id="aiQuota"></div>
+</div>
+
 <!-- Setup -->
 <div id="setupPanel" class="setup-panel">
-
   <div class="panel">
     <div class="panel-title">💬 議題を入力</div>
     <textarea id="topicInput" placeholder="例：リモートワークを全社員に義務化すべきか？"></textarea>
@@ -350,18 +286,16 @@
 
   <div class="panel">
     <div class="panel-title">🎲 参加タイプの選び方</div>
-    <div class="mode-toggle">
-      <button class="mode-btn active" onclick="setMode('random')" id="modeRandom">🎲 ランダム</button>
-      <button class="mode-btn" onclick="setMode('manual')" id="modeManual">✋ 手動で選ぶ</button>
+    <div class="debate-mode-toggle">
+      <button class="debate-mode-btn active" onclick="setDebateMode('random')" id="modeRandom">🎲 ランダム</button>
+      <button class="debate-mode-btn" onclick="setDebateMode('manual')" id="modeManual">✋ 手動で選ぶ</button>
     </div>
-
     <div id="randomControls" class="random-controls">
       <span class="random-label">参加人数</span>
       <input type="range" id="countSlider" min="3" max="12" value="6" oninput="updateCount(this.value)">
       <span class="random-count" id="countDisplay">6</span>
       <span class="random-label">タイプ</span>
     </div>
-
     <div id="manualControls" style="display:none">
       <div class="group-label group-NT">🔬 NT（分析家）</div>
       <div class="mbti-grid" id="gridNT"></div>
@@ -394,6 +328,7 @@
 
 <!-- Results -->
 <div class="results-area" id="resultsArea">
+  <div class="fallback-notice" id="fallbackNotice"></div>
   <div id="convergencePanel"></div>
   <div class="panel">
     <div class="tab-bar" id="tabBar"></div>
@@ -415,6 +350,8 @@
 
 <script>
 const SERVER = 'https://lab-production-d6e6.up.railway.app';
+const AI_LIMIT = 2;
+const LS_KEY = 'mbti_ai_usage';
 
 const TYPES = {
   INTJ:{emoji:'🏰',nick:'建築家',group:'NT'},
@@ -434,14 +371,12 @@ const TYPES = {
   ESTP:{emoji:'⚡',nick:'起業家',group:'SP'},
   ESFP:{emoji:'🎉',nick:'エンターテイナー',group:'SP'},
 };
-
 const GROUP_ORDER = {
   NT:['INTJ','INTP','ENTJ','ENTP'],
   NF:['INFJ','INFP','ENFJ','ENFP'],
   SJ:['ISTJ','ISFJ','ESTJ','ESFJ'],
   SP:['ISTP','ISFP','ESTP','ESFP'],
 };
-
 const CATEGORIES = [
   { id:'work',      emoji:'🏢', label:'仕事・組織' },
   { id:'society',   emoji:'🌍', label:'社会・政策' },
@@ -451,20 +386,60 @@ const CATEGORIES = [
   { id:'free',      emoji:'🆓', label:'フリー' },
 ];
 
-let mode = 'random';
+let debateMode = 'random';
 let selectedTypes = new Set();
 let debateCount = 6;
 let selectedCategory = 'free';
+let aiMode = 'rule';
 let currentTopic = '';
 let currentParticipants = [];
 let currentRound = 0;
 let allRounds = [];
 let history = [];
 
+// ── AI Quota (localStorage) ──
+function getTodayKey() {
+  return 'mbti_ai_' + new Date().toISOString().slice(0,10);
+}
+function getAIUsed() {
+  try {
+    const data = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+    return data[getTodayKey()] || 0;
+  } catch { return 0; }
+}
+function incAIUsed() {
+  try {
+    const data = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+    data[getTodayKey()] = (data[getTodayKey()] || 0) + 1;
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+  } catch {}
+}
+function getAIRemaining() { return Math.max(0, AI_LIMIT - getAIUsed()); }
+
+function updateQuotaDisplay() {
+  const el = document.getElementById('aiQuota');
+  if (aiMode === 'rule') { el.textContent = ''; el.className = 'ai-quota'; return; }
+  const rem = getAIRemaining();
+  if (rem > 0) {
+    el.textContent = `残り ${rem} 回 / 本日`;
+    el.className = 'ai-quota ok';
+  } else {
+    el.textContent = '本日の枠は終了（ルールベースで動作）';
+    el.className = 'ai-quota empty';
+  }
+}
+
+// ── AI Mode ──
+function setAIMode(mode) {
+  aiMode = mode;
+  document.getElementById('btnRule').className = 'mode-ai-btn' + (mode==='rule'?' active-rule':'');
+  document.getElementById('btnAI').className = 'mode-ai-btn' + (mode==='ai'?' active-ai':'');
+  updateQuotaDisplay();
+}
+
 // ── Accordion ──
 function toggleAbout() {
-  const acc = document.getElementById('aboutAccordion');
-  acc.classList.toggle('open');
+  document.getElementById('aboutAccordion').classList.toggle('open');
 }
 
 // ── Init ──
@@ -478,7 +453,6 @@ function init() {
     btn.onclick = () => selectCategory(c.id);
     catGrid.appendChild(btn);
   });
-
   ['NT','NF','SJ','SP'].forEach(g => {
     const grid = document.getElementById('grid'+g);
     GROUP_ORDER[g].forEach(code => {
@@ -491,6 +465,7 @@ function init() {
       grid.appendChild(chip);
     });
   });
+  updateQuotaDisplay();
 }
 
 function selectCategory(id) {
@@ -498,44 +473,24 @@ function selectCategory(id) {
   document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('cat-'+id).classList.add('active');
 }
-
-function setMode(m) {
-  mode = m;
+function setDebateMode(m) {
+  debateMode = m;
   document.getElementById('modeRandom').classList.toggle('active', m==='random');
   document.getElementById('modeManual').classList.toggle('active', m==='manual');
   document.getElementById('randomControls').style.display = m==='random'?'flex':'none';
   document.getElementById('manualControls').style.display = m==='manual'?'block':'none';
 }
-
 function updateCount(v) { debateCount=parseInt(v); document.getElementById('countDisplay').textContent=v; }
-
 function toggleType(code) {
-  if(selectedTypes.has(code)) {
-    selectedTypes.delete(code);
-    document.getElementById('chip-'+code).className='type-chip';
-  } else {
-    selectedTypes.add(code);
-    document.getElementById('chip-'+code).className=`type-chip sel-${TYPES[code].group}`;
-  }
+  if(selectedTypes.has(code)) { selectedTypes.delete(code); document.getElementById('chip-'+code).className='type-chip'; }
+  else { selectedTypes.add(code); document.getElementById('chip-'+code).className=`type-chip sel-${TYPES[code].group}`; }
   document.getElementById('selectedCount').textContent=selectedTypes.size+' タイプ選択中';
 }
-
-function selectAll() {
-  Object.keys(TYPES).forEach(c=>{selectedTypes.add(c);document.getElementById('chip-'+c).className=`type-chip sel-${TYPES[c].group}`;});
-  document.getElementById('selectedCount').textContent=selectedTypes.size+' タイプ選択中';
-}
-function selectNone() {
-  selectedTypes.clear();
-  Object.keys(TYPES).forEach(c=>{document.getElementById('chip-'+c).className='type-chip';});
-  document.getElementById('selectedCount').textContent='0 タイプ選択中';
-}
-function selectRandom() {
-  selectNone();
-  Object.keys(TYPES).sort(()=>Math.random()-.5).slice(0,6).forEach(c=>toggleType(c));
-}
-
+function selectAll() { Object.keys(TYPES).forEach(c=>{selectedTypes.add(c);document.getElementById('chip-'+c).className=`type-chip sel-${TYPES[c].group}`;}); document.getElementById('selectedCount').textContent=selectedTypes.size+' タイプ選択中'; }
+function selectNone() { selectedTypes.clear(); Object.keys(TYPES).forEach(c=>{document.getElementById('chip-'+c).className='type-chip';}); document.getElementById('selectedCount').textContent='0 タイプ選択中'; }
+function selectRandom() { selectNone(); Object.keys(TYPES).sort(()=>Math.random()-.5).slice(0,6).forEach(c=>toggleType(c)); }
 function getParticipants() {
-  if(mode==='random') return Object.keys(TYPES).sort(()=>Math.random()-.5).slice(0,debateCount);
+  if(debateMode==='random') return Object.keys(TYPES).sort(()=>Math.random()-.5).slice(0,debateCount);
   return Array.from(selectedTypes);
 }
 
@@ -554,12 +509,10 @@ function showProgress(participants, header) {
   });
   document.getElementById('progressArea').classList.add('visible');
 }
-
 function markDone(code) {
   const el = document.getElementById('ac-'+code);
   if(el) { el.classList.remove('thinking'); el.classList.add('done'); el.querySelector('.a-state').textContent='✓ 完了'; }
 }
-
 function markAllThinking(participants, label) {
   participants.forEach(code => {
     const el = document.getElementById('ac-'+code);
@@ -568,13 +521,20 @@ function markAllThinking(participants, label) {
 }
 
 // ── API ──
-async function callDebate(topic, participants, round, history) {
+// 実際に使うmodeを決定（quota切れならruleにフォールバック）
+function resolveMode() {
+  if (aiMode === 'ai' && getAIRemaining() > 0) return 'ai';
+  return 'rule';
+}
+
+async function callDebate(topic, participants, round, history, mode) {
   const res = await fetch(`${SERVER}/mbti/debate`, {
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({topic, participants, round, history, category: selectedCategory})
+    body: JSON.stringify({topic, participants, round, history, category: selectedCategory, mode})
   });
-  if(!res.ok) {
+  if (res.status === 429) throw new Error('QUOTA_EXCEEDED');
+  if (!res.ok) {
     const err = await res.json().catch(()=>({}));
     throw new Error(err.error || `Server error ${res.status}`);
   }
@@ -582,6 +542,9 @@ async function callDebate(topic, participants, round, history) {
 }
 
 // ── Start ──
+let usedAIThisSession = false;
+let fellBackToRule = false;
+
 async function startDebate() {
   const topic = document.getElementById('topicInput').value.trim();
   if(!topic) { showError('議題を入力してください。'); return; }
@@ -594,34 +557,68 @@ async function startDebate() {
   currentRound = 1;
   allRounds = [];
   history = [];
+  usedAIThisSession = false;
+  fellBackToRule = false;
+  document.getElementById('fallbackNotice').classList.remove('visible');
 
   document.getElementById('setupPanel').style.display = 'none';
   document.getElementById('resultsArea').classList.remove('visible');
-  showProgress(participants, '⚡ Round 1: 各タイプが立場を表明中...');
 
+  // Round 1
+  const mode1 = resolveMode();
+  showProgress(participants, `⚡ Round 1: 各タイプが立場を表明中... ${mode1==='ai'?'（AIモード）':''}`);
   try {
-    const result = await callDebate(topic, participants, 1, []);
+    const result = await callDebate(topic, participants, 1, [], mode1);
+    if (mode1 === 'ai') { incAIUsed(); usedAIThisSession = true; updateQuotaDisplay(); }
     result.opinions.forEach(o => markDone(o.type));
     history = result.opinions;
-    allRounds.push(result);
+    allRounds.push({...result, usedMode: mode1});
   } catch(e) {
-    showError('サーバーエラー: '+e.message);
-    document.getElementById('setupPanel').style.display='block';
-    document.getElementById('progressArea').classList.remove('visible');
-    return;
+    if (e.message === 'QUOTA_EXCEEDED' && mode1 === 'ai') {
+      // サーバー側quota切れ → ルールベースで再試行
+      fellBackToRule = true;
+      try {
+        const result = await callDebate(topic, participants, 1, [], 'rule');
+        result.opinions.forEach(o => markDone(o.type));
+        history = result.opinions;
+        allRounds.push({...result, usedMode: 'rule'});
+      } catch(e2) {
+        showError('サーバーエラー: '+e2.message);
+        document.getElementById('setupPanel').style.display='block';
+        document.getElementById('progressArea').classList.remove('visible');
+        return;
+      }
+    } else {
+      showError('サーバーエラー: '+e.message);
+      document.getElementById('setupPanel').style.display='block';
+      document.getElementById('progressArea').classList.remove('visible');
+      return;
+    }
   }
 
-  document.getElementById('progressHeader').textContent = '🔥 Round 2: 他タイプの意見に反応中...';
+  // Round 2
+  const mode2 = fellBackToRule ? 'rule' : resolveMode();
+  document.getElementById('progressHeader').textContent = `🔥 Round 2: 他タイプの意見に反応中... ${mode2==='ai'?'（AIモード）':''}`;
   markAllThinking(participants, '反応中...');
-
   try {
-    const result2 = await callDebate(topic, participants, 2, history);
+    const result2 = await callDebate(topic, participants, 2, history, mode2);
+    if (mode2 === 'ai' && !usedAIThisSession) { incAIUsed(); updateQuotaDisplay(); }
     result2.opinions.forEach(o => markDone(o.type));
     history = [...history, ...result2.opinions];
-    allRounds.push(result2);
+    allRounds.push({...result2, usedMode: mode2});
   } catch(e) {
-    showError('サーバーエラー: '+e.message);
-    return;
+    if (e.message === 'QUOTA_EXCEEDED') {
+      fellBackToRule = true;
+      try {
+        const result2 = await callDebate(topic, participants, 2, history, 'rule');
+        result2.opinions.forEach(o => markDone(o.type));
+        history = [...history, ...result2.opinions];
+        allRounds.push({...result2, usedMode: 'rule'});
+      } catch(e2) { showError('サーバーエラー: '+e2.message); return; }
+    } else {
+      showError('サーバーエラー: '+e.message);
+      return;
+    }
   }
 
   currentRound = 2;
@@ -634,21 +631,34 @@ async function continueDebate() {
   const hint = document.getElementById('continueHint').value.trim();
   const nextRound = currentRound + 1;
   const topic = hint ? `${currentTopic}（追加論点：${hint}）` : currentTopic;
+  const mode = fellBackToRule ? 'rule' : resolveMode();
 
   document.getElementById('continueBtn').disabled = true;
   document.getElementById('resultsArea').classList.remove('visible');
   showProgress(currentParticipants, `🔥 Round ${nextRound}: 議論継続中...`);
 
   try {
-    const result = await callDebate(topic, currentParticipants, nextRound, history);
+    const result = await callDebate(topic, currentParticipants, nextRound, history, mode);
+    if (mode === 'ai') { incAIUsed(); updateQuotaDisplay(); }
     result.opinions.forEach(o => markDone(o.type));
     history = [...history, ...result.opinions];
-    allRounds.push(result);
+    allRounds.push({...result, usedMode: mode});
     currentRound = nextRound;
   } catch(e) {
-    showError('サーバーエラー: '+e.message);
-    document.getElementById('continueBtn').disabled = false;
-    return;
+    if (e.message === 'QUOTA_EXCEEDED') {
+      fellBackToRule = true;
+      try {
+        const result = await callDebate(topic, currentParticipants, nextRound, history, 'rule');
+        result.opinions.forEach(o => markDone(o.type));
+        history = [...history, ...result.opinions];
+        allRounds.push({...result, usedMode: 'rule'});
+        currentRound = nextRound;
+      } catch(e2) { showError('サーバーエラー: '+e2.message); document.getElementById('continueBtn').disabled=false; return; }
+    } else {
+      showError('サーバーエラー: '+e.message);
+      document.getElementById('continueBtn').disabled = false;
+      return;
+    }
   }
 
   document.getElementById('progressArea').classList.remove('visible');
@@ -662,12 +672,25 @@ function renderResults() {
   const lastRound = allRounds[allRounds.length-1];
   const conv = lastRound.convergence;
 
+  // フォールバック通知
+  const notice = document.getElementById('fallbackNotice');
+  if (fellBackToRule && aiMode === 'ai') {
+    notice.textContent = '⚠️ AIモードの本日の無料枠を使い切りました。ルールベースモードで議論を継続しています。';
+    notice.classList.add('visible');
+  } else if (aiMode === 'ai' && getAIRemaining() === 0) {
+    notice.textContent = '⚠️ 本日のAIモード枠（2回）を使い切りました。続きはルールベースで動作します。';
+    notice.classList.add('visible');
+  }
+
   const statusMap = {
     converged:{ cls:'converged', icon:'🎯', label:'Converged — 合意形成' },
     stable:   { cls:'stable',    icon:'⚖️', label:'Stable Trade-off — 対立軸が明確' },
     diverged: { cls:'diverged',  icon:'🌀', label:'Not Converged — 議論継続中' },
   };
   const s = statusMap[conv.status] || statusMap.stable;
+  const modeTag = lastRound.usedMode === 'ai'
+    ? '<span class="result-mode-tag ai">✨ AIモード</span>'
+    : '<span class="result-mode-tag rule">🔧 ルールベース</span>';
 
   let axesHtml = '';
   if(conv.axes && conv.axes.length) {
@@ -679,6 +702,7 @@ function renderResults() {
 
   document.getElementById('convergencePanel').innerHTML = `
     <div class="convergence-panel ${s.cls}">
+      ${modeTag}
       <span class="convergence-icon">${s.icon}</span>
       <div class="convergence-label">${s.label}</div>
       <div class="convergence-text">${conv.summary}</div>
@@ -747,7 +771,10 @@ function restart() {
   document.getElementById('setupPanel').style.display = 'block';
   document.getElementById('resultsArea').classList.remove('visible');
   document.getElementById('progressArea').classList.remove('visible');
+  document.getElementById('fallbackNotice').classList.remove('visible');
   allRounds = []; history = []; currentRound = 0;
+  fellBackToRule = false;
+  updateQuotaDisplay();
 }
 
 function showError(msg) { const el=document.getElementById('errorBox'); el.textContent='⚠️ '+msg; el.classList.add('visible'); }
