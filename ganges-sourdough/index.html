@@ -611,6 +611,409 @@
     .depth-meter { display: none; }
     .ganges-wrap { padding: 4rem 1.5rem; }
   }
+
+  /* ========== SAMSARA ENGINE ========== */
+
+  /* Phase 2: Void Corridor */
+  #void-corridor {
+    position: fixed;
+    inset: 0;
+    background: var(--white);
+    z-index: 600;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1.5s ease;
+    overflow: hidden;
+  }
+
+  #void-corridor.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .void-nu {
+    font-family: 'Shippori Mincho', serif;
+    font-size: clamp(6rem, 20vw, 14rem);
+    color: rgba(26,18,8,0.06);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: nuRise 4s ease forwards;
+    user-select: none;
+  }
+
+  @keyframes nuRise {
+    0% { opacity: 0; transform: translate(-50%, -40%) scale(0.8); filter: blur(20px); }
+    50% { opacity: 1; filter: blur(0px); }
+    100% { opacity: 0.08; transform: translate(-50%, -50%) scale(1.2); filter: blur(3px); }
+  }
+
+  .void-noise-char {
+    position: absolute;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    color: rgba(74,50,24,0.2);
+    animation: noiseFloat linear infinite;
+    user-select: none;
+  }
+
+  @keyframes noiseFloat {
+    0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 0.5; }
+    100% { transform: translateY(-60px) rotate(10deg); opacity: 0; }
+  }
+
+  .void-transition-label {
+    position: relative;
+    z-index: 2;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.3em;
+    color: rgba(74,50,24,0.5);
+    margin-top: 60vh;
+    animation: fadeInSlow 3s ease 1.5s forwards;
+    opacity: 0;
+  }
+
+  @keyframes fadeInSlow {
+    to { opacity: 1; }
+  }
+
+  /* Phase 3: MEI-MEI-KER */
+  #meimei-ker {
+    position: fixed;
+    inset: 0;
+    background: #f8f4ee;
+    z-index: 700;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1.5s ease;
+    overflow-y: auto;
+  }
+
+  #meimei-ker.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .meimei-wrap {
+    max-width: 580px;
+    width: 100%;
+    padding: 4rem 2rem 6rem;
+  }
+
+  .meimei-header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  .meimei-title {
+    font-size: clamp(1.4rem, 4vw, 2.2rem);
+    color: var(--mud);
+    letter-spacing: 0.2em;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+
+  .meimei-sub {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    color: rgba(74,50,24,0.5);
+    letter-spacing: 0.2em;
+  }
+
+  .meimei-round-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    color: rgba(74,50,24,0.4);
+    letter-spacing: 0.3em;
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+
+  /* Chat bubbles */
+  .chat-log {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .chat-bubble {
+    padding: 1.25rem 1.5rem;
+    border-radius: 2px;
+    line-height: 1.9;
+    font-size: 0.95rem;
+    opacity: 0;
+    animation: bubbleIn 0.8s ease forwards;
+  }
+
+  @keyframes bubbleIn {
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  .chat-bubble.ai {
+    background: rgba(26,18,8,0.06);
+    border-left: 2px solid rgba(74,50,24,0.3);
+    color: var(--mud);
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 300;
+  }
+
+  .chat-bubble.ai .bubble-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.5rem;
+    color: rgba(74,50,24,0.4);
+    letter-spacing: 0.2em;
+    margin-bottom: 0.5rem;
+  }
+
+  .chat-bubble.user {
+    background: rgba(200,169,110,0.12);
+    border-right: 2px solid rgba(200,169,110,0.5);
+    color: var(--murk);
+    text-align: right;
+    font-family: 'Noto Serif JP', serif;
+  }
+
+  /* User input zone */
+  .meimei-input-zone {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  #meimei-input {
+    width: 100%;
+    background: rgba(26,18,8,0.04);
+    border: 1px solid rgba(74,50,24,0.25);
+    border-radius: 2px;
+    padding: 1rem;
+    color: var(--mud);
+    font-family: 'Noto Serif JP', serif;
+    font-size: 0.95rem;
+    line-height: 1.8;
+    resize: none;
+    height: 100px;
+    outline: none;
+    transition: border-color 0.3s;
+  }
+
+  #meimei-input:focus {
+    border-color: rgba(74,50,24,0.5);
+  }
+
+  #meimei-input::placeholder {
+    color: rgba(74,50,24,0.3);
+    font-size: 0.85rem;
+  }
+
+  .meimei-send-btn {
+    align-self: flex-end;
+    background: transparent;
+    border: 1px solid rgba(74,50,24,0.3);
+    color: var(--mud);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    padding: 0.6rem 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .meimei-send-btn:hover {
+    background: var(--mud);
+    color: var(--ghost);
+  }
+
+  .meimei-send-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  /* Round progress dots */
+  .round-dots {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    margin-bottom: 2rem;
+  }
+
+  .round-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(74,50,24,0.15);
+    transition: background 0.5s;
+  }
+
+  .round-dot.done {
+    background: var(--foam);
+  }
+
+  .round-dot.active {
+    background: var(--mud);
+  }
+
+  /* Phase 4: Blueprint Exhumer */
+  #blueprint-exhumer {
+    position: fixed;
+    inset: 0;
+    background: #f8f4ee;
+    z-index: 800;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1.5s ease;
+    overflow-y: auto;
+  }
+
+  #blueprint-exhumer.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .blueprint-wrap {
+    max-width: 640px;
+    width: 100%;
+    padding: 4rem 2rem 6rem;
+  }
+
+  .blueprint-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    border-bottom: 1px solid rgba(74,50,24,0.15);
+    padding-bottom: 2rem;
+  }
+
+  .blueprint-eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.35em;
+    color: rgba(74,50,24,0.4);
+    margin-bottom: 0.75rem;
+  }
+
+  .blueprint-title {
+    font-size: clamp(1.6rem, 5vw, 2.8rem);
+    color: var(--mud);
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-bottom: 0.5rem;
+  }
+
+  .blueprint-tool-name {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    color: rgba(74,50,24,0.6);
+    letter-spacing: 0.2em;
+  }
+
+  .blueprint-section {
+    margin-bottom: 2rem;
+  }
+
+  .blueprint-section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.3em;
+    color: rgba(74,50,24,0.4);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid rgba(74,50,24,0.1);
+  }
+
+  .blueprint-prompt-box {
+    background: rgba(26,18,8,0.04);
+    border: 1px solid rgba(74,50,24,0.15);
+    border-radius: 2px;
+    padding: 1.5rem;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 0.9rem;
+    line-height: 2;
+    color: var(--mud);
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .blueprint-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 2.5rem;
+  }
+
+  .bp-btn {
+    flex: 1;
+    min-width: 160px;
+    padding: 1rem;
+    background: transparent;
+    border: 1px solid rgba(74,50,24,0.3);
+    color: var(--mud);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    transition: all 0.4s;
+    text-align: center;
+  }
+
+  .bp-btn:hover {
+    background: var(--mud);
+    color: var(--ghost);
+    border-color: var(--mud);
+  }
+
+  .bp-btn.primary {
+    background: var(--mud);
+    color: var(--ghost);
+    border-color: var(--mud);
+  }
+
+  .bp-btn.primary:hover {
+    background: var(--silt);
+  }
+
+  .bp-btn.copied {
+    color: var(--green);
+    border-color: var(--green);
+  }
+
+  .transmigration-seal {
+    text-align: center;
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(74,50,24,0.1);
+  }
+
+  .seal-glyph {
+    font-size: 2rem;
+    color: rgba(74,50,24,0.15);
+    display: block;
+    margin-bottom: 0.75rem;
+  }
+
+  .seal-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    color: rgba(74,50,24,0.3);
+    letter-spacing: 0.3em;
+  }
 </style>
 </head>
 <body>
@@ -650,6 +1053,64 @@
     <div class="miracle-title" id="miracle-title"></div>
     <div class="miracle-text" id="miracle-text"></div>
     <div class="miracle-restart" onclick="restart()">← もう一度、潜る</div>
+  </div>
+</div>
+
+<!-- ===== VOID CORRIDOR (Phase 2) ===== -->
+<div id="void-corridor">
+  <div class="void-nu">ぬ</div>
+  <div class="void-transition-label">命迷モードへ移行中 — transmigrating</div>
+</div>
+
+<!-- ===== MEI-MEI-KER (Phase 3) ===== -->
+<div id="meimei-ker">
+  <div class="meimei-wrap">
+    <div class="meimei-header">
+      <div class="meimei-title">命迷</div>
+      <div class="meimei-sub">MEI-MEI-KER — naming ritual</div>
+    </div>
+    <div class="round-dots" id="round-dots">
+      <div class="round-dot active" id="dot-0"></div>
+      <div class="round-dot" id="dot-1"></div>
+      <div class="round-dot" id="dot-2"></div>
+    </div>
+    <div class="meimei-round-label" id="meimei-round-label">Round 1 / 3 — 命の残滓を拾え</div>
+    <div class="chat-log" id="chat-log"></div>
+    <div class="meimei-input-zone" id="meimei-input-zone">
+      <textarea id="meimei-input" placeholder="このツールの名前、なんだと思う？"></textarea>
+      <button class="meimei-send-btn" id="meimei-send-btn" onclick="sendMeimei()">送る →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== BLUEPRINT EXHUMER (Phase 4) ===== -->
+<div id="blueprint-exhumer">
+  <div class="blueprint-wrap">
+    <div class="blueprint-header">
+      <div class="blueprint-eyebrow">BLUEPRINT-EXHUMER / 転生完了</div>
+      <div class="blueprint-title" id="bp-tool-display">命が、掘り出された</div>
+      <div class="blueprint-tool-name" id="bp-tool-name-sub"></div>
+    </div>
+    <div class="blueprint-section">
+      <div class="blueprint-section-label">// SOUL — 入水した悩みの残滓</div>
+      <div class="blueprint-prompt-box" id="bp-soul"></div>
+    </div>
+    <div class="blueprint-section">
+      <div class="blueprint-section-label">// NAMING — 命迷の痕跡</div>
+      <div class="blueprint-prompt-box" id="bp-naming"></div>
+    </div>
+    <div class="blueprint-section">
+      <div class="blueprint-section-label">// CLAUDE PROMPT — このツールを召喚するための呪文</div>
+      <div class="blueprint-prompt-box" id="bp-prompt"></div>
+    </div>
+    <div class="blueprint-actions">
+      <button class="bp-btn primary" id="bp-copy-btn" onclick="copyBlueprint()">呪文をコピー</button>
+      <button class="bp-btn" onclick="restart()">← 川に戻る</button>
+    </div>
+    <div class="transmigration-seal">
+      <span class="seal-glyph">輪</span>
+      <div class="seal-text">THE SAMSARA ENGINE — Blueprint #005</div>
+    </div>
   </div>
 </div>
 
@@ -1106,12 +1567,11 @@ function getVirusFallback() {
 }
 
 // ============================================================
-// Miracle Exit
+// Miracle Exit → Void Corridor → MEI-MEI-KER
 // ============================================================
 async function triggerMiracleExit(worry) {
   isMiracleTriggered = true;
 
-  // Extract 3 keywords from AI or fallback
   let keywords;
   try {
     keywords = await extractKeywords(worry);
@@ -1122,10 +1582,8 @@ async function triggerMiracleExit(worry) {
   // Flash white
   const exit = document.getElementById('miracle-exit');
   exit.classList.add('flash');
-
   await delay(200);
 
-  // Generate miracle content
   const format = miracleFormats[Math.floor(Math.random() * miracleFormats.length)];
   let miracleText;
   try {
@@ -1134,7 +1592,6 @@ async function triggerMiracleExit(worry) {
     miracleText = format.generate(keywords);
   }
 
-  // Populate miracle content
   const kwContainer = document.getElementById('miracle-keywords');
   keywords.forEach(kw => {
     const el = document.createElement('div');
@@ -1146,8 +1603,353 @@ async function triggerMiracleExit(worry) {
   document.getElementById('miracle-title').textContent = `— ${format.type} として再構成 —`;
   document.getElementById('miracle-text').textContent = miracleText;
 
+  // Add manual proceed button
+  const proceedBtn = document.createElement('div');
+  proceedBtn.id = 'miracle-proceed';
+  proceedBtn.style.cssText = `margin-top:2rem;font-family:'Space Mono',monospace;font-size:0.6rem;color:rgba(74,50,24,0.4);letter-spacing:0.3em;cursor:pointer;padding:0.8rem 1.5rem;border:1px solid rgba(74,50,24,0.2);display:inline-block;transition:all 0.4s;`;
+  proceedBtn.textContent = '次の岸へ →';
+  proceedBtn.onmouseenter = () => { proceedBtn.style.color = 'rgba(74,50,24,0.8)'; proceedBtn.style.borderColor = 'rgba(74,50,24,0.5)'; };
+  proceedBtn.onmouseleave = () => { proceedBtn.style.color = 'rgba(74,50,24,0.4)'; proceedBtn.style.borderColor = 'rgba(74,50,24,0.2)'; };
+  proceedBtn.onclick = () => {
+    clearTimeout(autoTimer);
+    enterVoidCorridor(worry, keywords, miracleText);
+  };
+  document.getElementById('miracle-content').appendChild(proceedBtn);
+
   exit.classList.remove('flash');
   exit.classList.add('settle');
+
+  // Auto-proceed after 8s
+  const autoTimer = setTimeout(() => {
+    enterVoidCorridor(worry, keywords, miracleText);
+  }, 8000);
+}
+
+// ============================================================
+// Phase 2: Void Corridor
+// ============================================================
+function enterVoidCorridor(worry, keywords, miracleText) {
+  // Remove proceed button
+  const pb = document.getElementById('miracle-proceed');
+  if (pb) pb.remove();
+
+  // Hide miracle-exit completely
+  const me = document.getElementById('miracle-exit');
+  me.style.transition = 'opacity 1s ease';
+  me.style.opacity = '0';
+  setTimeout(() => {
+    me.style.display = 'none';
+  }, 1000);
+
+  const vc = document.getElementById('void-corridor');
+  vc.style.display = 'flex';
+
+  // Spawn noise characters
+  for (let i = 0; i < 30; i++) {
+    setTimeout(() => {
+      const chars = ['ぬ','か','床','菌','転','生','命','迷','※','◆','▲','01','∞'];
+      const el = document.createElement('div');
+      el.className = 'void-noise-char';
+      el.textContent = chars[Math.floor(Math.random() * chars.length)];
+      el.style.left = (Math.random() * 100) + 'vw';
+      el.style.top = (30 + Math.random() * 50) + 'vh';
+      el.style.animationDuration = (4 + Math.random() * 6) + 's';
+      el.style.animationDelay = (Math.random() * 2) + 's';
+      vc.appendChild(el);
+    }, i * 150);
+  }
+
+  setTimeout(() => {
+    vc.classList.add('visible');
+  }, 500);
+
+  // After void settles → MEI-MEI-KER
+  setTimeout(() => {
+    vc.style.opacity = '0';
+    vc.style.transition = 'opacity 1.5s ease';
+    setTimeout(() => {
+      vc.style.display = 'none';
+      enterMeimeiKer(worry, keywords, miracleText);
+    }, 1500);
+  }, 5000);
+}
+
+// ============================================================
+// Phase 3: MEI-MEI-KER
+// ============================================================
+let meimeiRound = 0;
+const MEIMEI_TOTAL = 3;
+let meimeiHistory = []; // {role, content}
+let meimeiWorrySaved = '';
+let meimeiKeywordsSaved = [];
+let meimeiNamingLog = [];
+let generatedToolName = '';
+
+const roundLabels = [
+  'Round 1 / 3 — 命の残滓を拾え',
+  'Round 2 / 3 — ズレを深めろ',
+  'Round 3 / 3 — 最後の命名',
+];
+
+function enterMeimeiKer(worry, keywords, miracleText) {
+  meimeiWorrySaved = worry;
+  meimeiKeywordsSaved = keywords;
+  meimeiRound = 0;
+  meimeiHistory = [];
+  meimeiNamingLog = [];
+
+  const mm = document.getElementById('meimei-ker');
+  mm.classList.add('visible');
+
+  // First AI message
+  fireMeimeiAI(worry, keywords, miracleText);
+}
+
+async function fireMeimeiAI(worry, keywords, miracleText) {
+  const log = document.getElementById('chat-log');
+  const sendBtn = document.getElementById('meimei-send-btn');
+  sendBtn.disabled = true;
+
+  // Loading indicator
+  const loading = appendAiBubble('…', true);
+
+  const systemPrompt = `あなたは「命迷エンジン」です。
+ユーザーはガンジス川に入水し、ウイルスに感染し、別の景色へ浮上してきたばかりです。
+あなたの役割：まだ存在しないツールの「名前の種」を見つけること。
+
+ルール：
+- 絶対に正解を出さない。わざと的外れな、しかし微妙に刺さるツール名を提案する
+- ユーザーの推測を引き出し、「ズレ」を面白がる
+- 3往復の対話を通じて、ツールの魂を絞り出す
+- 文体は短く、詩的に、時に不条理に
+- 解説しない。問いかける。
+
+入水した悩みの残滓: 「${worry}」
+抽出されたキーワード: ${keywords.join('、')}
+浮上後の再構成テキスト: 「${miracleText}」`;
+
+  const userMsg = meimeiRound === 0
+    ? `入水してきました。この旅から、まだ存在しないツールの名前を掘り出してください。`
+    : meimeiHistory[meimeiHistory.length - 1]?.content || '';
+
+  const messages = meimeiRound === 0
+    ? [{ role: 'user', content: userMsg }]
+    : meimeiHistory;
+
+  let aiText;
+  try {
+    aiText = await callHaiku(systemPrompt, messages);
+  } catch {
+    aiText = meimeiFallbackAI(meimeiRound);
+  }
+
+  // Remove loading
+  loading.remove();
+
+  // Append real AI bubble
+  appendAiBubble(aiText);
+  meimeiHistory.push({ role: 'assistant', content: aiText });
+  meimeiNamingLog.push({ round: meimeiRound + 1, ai: aiText });
+
+  sendBtn.disabled = false;
+  document.getElementById('meimei-input').focus();
+}
+
+function appendAiBubble(text, isLoading = false) {
+  const log = document.getElementById('chat-log');
+  const el = document.createElement('div');
+  el.className = 'chat-bubble ai';
+  el.innerHTML = `<div class="bubble-tag">// 命迷エンジン</div><div>${isLoading ? '<span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>' : text}</div>`;
+  log.appendChild(el);
+  el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  return el;
+}
+
+function appendUserBubble(text) {
+  const log = document.getElementById('chat-log');
+  const el = document.createElement('div');
+  el.className = 'chat-bubble user';
+  el.textContent = text;
+  log.appendChild(el);
+  el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+async function sendMeimei() {
+  const input = document.getElementById('meimei-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  appendUserBubble(text);
+  meimeiHistory.push({ role: 'user', content: text });
+  meimeiNamingLog[meimeiNamingLog.length - 1].user = text;
+  input.value = '';
+
+  meimeiRound++;
+  updateRoundDots();
+
+  if (meimeiRound >= MEIMEI_TOTAL) {
+    // End of naming ritual
+    document.getElementById('meimei-input-zone').style.opacity = '0.3';
+    document.getElementById('meimei-input-zone').style.pointerEvents = 'none';
+    await delay(800);
+
+    // Final AI — detect the soul
+    await fireFinalMeimei();
+  } else {
+    document.getElementById('meimei-round-label').textContent = roundLabels[meimeiRound];
+    await fireMeimeiAI(meimeiWorrySaved, meimeiKeywordsSaved, '');
+  }
+}
+
+async function fireFinalMeimei() {
+  const loading = appendAiBubble('…', true);
+  const systemPrompt = `あなたは「命迷エンジン」の最終フェーズです。
+3往復の対話の末、ツールの魂が定まりました。
+入水した悩みと、命名の対話から、ツールの「真の名前」を一つだけ宣言してください。
+名前は日本語でも英語でもいい。詩的でいい。機能名じゃなくていい。
+最後に、なぜその名前なのかを一文で。
+フォーマット：
+名前：〇〇
+理由：〇〇`;
+
+  const messages = [...meimeiHistory, { role: 'user', content: '転生完了。この命に名前をつけてください。' }];
+
+  let finalText;
+  try {
+    finalText = await callHaiku(systemPrompt, messages);
+  } catch {
+    finalText = `名前：${meimeiNamingLog.map(l => l.user).join('と')}\n理由：ズレが重なった場所に、命があった。`;
+  }
+
+  loading.remove();
+  appendAiBubble(finalText);
+
+  // Extract tool name
+  const nameMatch = finalText.match(/名前[：:]\s*(.+)/);
+  generatedToolName = nameMatch ? nameMatch[1].trim() : '名無しの命';
+
+  await delay(3000);
+  enterBlueprintExhumer();
+}
+
+function updateRoundDots() {
+  for (let i = 0; i < MEIMEI_TOTAL; i++) {
+    const dot = document.getElementById(`dot-${i}`);
+    if (!dot) continue;
+    dot.classList.remove('active', 'done');
+    if (i < meimeiRound) dot.classList.add('done');
+    else if (i === meimeiRound) dot.classList.add('active');
+  }
+}
+
+// Haiku API call
+async function callHaiku(system, messages) {
+  if (!apiKey) throw new Error('no key');
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 400,
+      system,
+      messages,
+    }),
+  });
+  if (!res.ok) throw new Error('API error');
+  const data = await res.json();
+  return data.content[0].text.trim();
+}
+
+function meimeiFallbackAI(round) {
+  const fallbacks = [
+    'この旅から拾えるツール名……「溶解管理システム」はどうでしょう。\nあなたが入水した場所に、何が残りましたか？',
+    'なるほど。では「忘却の窓口」という名前の方が近いかもしれません。\nそれとも、もっと奇妙な何かを感じますか？',
+    '最後に聞きます。\nこのツールが「人に何かを諦めさせる装置」だとしたら、何と呼びますか？',
+  ];
+  return fallbacks[Math.min(round, fallbacks.length - 1)];
+}
+
+// ============================================================
+// Phase 4: Blueprint Exhumer
+// ============================================================
+let blueprintPromptText = '';
+
+async function enterBlueprintExhumer() {
+  const mm = document.getElementById('meimei-ker');
+  mm.style.opacity = '0';
+  mm.style.transition = 'opacity 1s ease';
+  await delay(1000);
+  mm.style.display = 'none';
+
+  const bp = document.getElementById('blueprint-exhumer');
+
+  // Build blueprint
+  const soul = `入水した悩み：${meimeiWorrySaved}\n\n抽出されたキーワード：${meimeiKeywordsSaved.join(' / ')}\n\n浮上後の残滓：ウイルスに感染し、別の景色へ放り出された。`;
+
+  const naming = meimeiNamingLog.map((l, i) =>
+    `[Round ${l.round}]\nAI：${l.ai}\nあなた：${l.user || '（沈黙）'}`
+  ).join('\n\n');
+
+  blueprintPromptText = generateBlueprintPrompt(meimeiWorrySaved, generatedToolName, meimeiNamingLog);
+
+  document.getElementById('bp-tool-display').textContent = generatedToolName;
+  document.getElementById('bp-tool-name-sub').textContent = '— 命迷から掘り出された名前';
+  document.getElementById('bp-soul').textContent = soul;
+  document.getElementById('bp-naming').textContent = naming;
+  document.getElementById('bp-prompt').textContent = blueprintPromptText;
+
+  bp.classList.add('visible');
+}
+
+function generateBlueprintPrompt(worry, toolName, namingLog) {
+  const namingEssence = namingLog.map(l => l.user).filter(Boolean).join('、');
+  return `# Blueprint: ${toolName}
+
+## コンセプトの源泉
+このツールは、以下の悩みを「変質」させる旅から生まれた：
+「${worry}」
+
+命名の過程で浮かんだ言葉：${namingEssence}
+
+## ツールの魂（Design Philosophy）
+- このツールは問題を解決しない
+- ユーザーを「別の景色」へ連れて行く装置である
+- 効率・最適化・答えという概念をシャットアウトする
+
+## 実装指示（Vibe Coding 合言葉）
+「${toolName}」を作ってほしい。
+このツールの本質は「${namingEssence}」という感覚から生まれた。
+UIは単一HTMLファイル、GitHub Pagesにデプロイ可能な形で。
+解決策を出さず、ユーザーの認知を変質させることだけを目指すこと。
+デザインは有機的で、泥臭く、非効率の美しさを持つこと。
+
+## 技術スペック
+- 単一HTMLファイル（依存なし）
+- Anthropic API使用可（claude-haiku-4-5-20251001）
+- ダークテーマ推奨
+- モバイル対応
+
+Generated by: The Samsara Engine (Ganges Sourdough → MEI-MEI-KER → Blueprint Exhumer)`;
+}
+
+async function copyBlueprint() {
+  try {
+    await navigator.clipboard.writeText(blueprintPromptText);
+    const btn = document.getElementById('bp-copy-btn');
+    btn.textContent = '✓ コピー完了';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '呪文をコピー';
+      btn.classList.remove('copied');
+    }, 3000);
+  } catch {
+    alert('コピーできませんでした。手動でテキストを選択してください。');
+  }
 }
 
 async function extractKeywords(worry) {
@@ -1285,12 +2087,56 @@ function restart() {
   depthLevel = 0;
   diveCount = 0;
   currentWorry = '';
-  document.getElementById('miracle-exit').className = '';
-  document.getElementById('miracle-exit').style.opacity = '0';
-  document.getElementById('miracle-exit').style.pointerEvents = 'none';
+  meimeiRound = 0;
+  meimeiHistory = [];
+  meimeiNamingLog = [];
+  generatedToolName = '';
+  blueprintPromptText = '';
+
+  // Reset miracle
+  const me = document.getElementById('miracle-exit');
+  me.className = '';
+  me.style.opacity = '0';
+  me.style.display = '';
+  me.style.pointerEvents = 'none';
+  me.style.transition = '';
   document.getElementById('miracle-keywords').innerHTML = '';
   document.getElementById('miracle-title').textContent = '';
   document.getElementById('miracle-text').textContent = '';
+  const pb = document.getElementById('miracle-proceed');
+  if (pb) pb.remove();
+
+  // Reset void corridor
+  const vc = document.getElementById('void-corridor');
+  vc.classList.remove('visible');
+  vc.style.opacity = '';
+  vc.style.display = '';
+  // Remove spawned noise chars
+  vc.querySelectorAll('.void-noise-char').forEach(el => el.remove());
+
+  // Reset MEI-MEI-KER
+  const mm = document.getElementById('meimei-ker');
+  mm.classList.remove('visible');
+  mm.style.opacity = '';
+  mm.style.display = '';
+  document.getElementById('chat-log').innerHTML = '';
+  document.getElementById('meimei-input').value = '';
+  document.getElementById('meimei-input-zone').style.opacity = '';
+  document.getElementById('meimei-input-zone').style.pointerEvents = '';
+  document.getElementById('meimei-round-label').textContent = roundLabels[0];
+  updateRoundDots();
+
+  // Reset Blueprint
+  const bp = document.getElementById('blueprint-exhumer');
+  bp.classList.remove('visible');
+  bp.style.display = '';
+  document.getElementById('bp-tool-display').textContent = '命が、掘り出された';
+  document.getElementById('bp-tool-name-sub').textContent = '';
+  document.getElementById('bp-soul').textContent = '';
+  document.getElementById('bp-naming').textContent = '';
+  document.getElementById('bp-prompt').textContent = '';
+
+  // Reset ganges
   document.getElementById('virus-stream').innerHTML = '';
   document.getElementById('worry-input').value = '';
   document.getElementById('worry-input').className = '';
