@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Ganges Sourdough</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;700&family=Noto+Serif+JP:wght@300;400&family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --mud: #1a1208;
+    --murk: #2d1f0a;
+    --silt: #4a3218;
+    --foam: #c8a96e;
+    --pale: #e8d5a8;
+    --ghost: #f5f0e8;
+    --white: #ffffff;
+    --green: #3d5a2a;
+    --rot: #5c2a0a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--mud);
+    color: var(--pale);
+    font-family: 'Shippori Mincho', serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    cursor: default;
+    transition: background 3s ease;
+  }
+
+  /* ========== SOURDOUGH GATE ========== */
+  #sourdough-gate {
+    position: fixed;
+    inset: 0;
+    background: var(--mud);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    transition: opacity 1.5s ease;
+  }
+
+  #sourdough-gate.dissolve {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .gate-title {
+    font-size: clamp(1.2rem, 3vw, 2rem);
+    letter-spacing: 0.3em;
+    color: var(--foam);
+    margin-bottom: 0.5rem;
+    text-align: center;
+  }
+
+  .gate-sub {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--silt);
+    letter-spacing: 0.15em;
+    margin-bottom: 3rem;
+    text-align: center;
+  }
+
+  /* Nuka bed stirring zone */
+  #stir-zone {
+    width: 220px;
+    height: 220px;
+    position: relative;
+    cursor: none;
+  }
+
+  #stir-canvas {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    display: block;
+  }
+
+  .stir-label {
+    position: absolute;
+    bottom: -2.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--silt);
+    white-space: nowrap;
+    letter-spacing: 0.1em;
+    transition: color 1s;
+  }
+
+  #ferment-status {
+    margin-top: 3.5rem;
+    font-size: 0.75rem;
+    color: var(--silt);
+    letter-spacing: 0.2em;
+    text-align: center;
+    min-height: 1.5rem;
+    font-family: 'Space Mono', monospace;
+  }
+
+  #ferment-status.active {
+    color: var(--foam);
+  }
+
+  /* Slowness gate progress */
+  #slowness-gate {
+    position: fixed;
+    inset: 0;
+    background: var(--mud);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1s ease;
+  }
+
+  #slowness-gate.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .ferment-words {
+    max-width: 400px;
+    text-align: center;
+    line-height: 3;
+    font-size: 1.1rem;
+    color: var(--silt);
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+  }
+
+  .ferment-word {
+    opacity: 0;
+    animation: wordFloat 4s ease forwards;
+    font-weight: 300;
+    color: var(--foam);
+  }
+
+  @keyframes wordFloat {
+    0% { opacity: 0; transform: translateY(8px); }
+    20% { opacity: 1; transform: translateY(0); }
+    80% { opacity: 1; }
+    100% { opacity: 0.3; }
+  }
+
+  .ferment-bar-wrap {
+    margin-top: 3rem;
+    width: 200px;
+    height: 2px;
+    background: var(--silt);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ferment-bar {
+    height: 100%;
+    background: var(--foam);
+    width: 0%;
+    transition: width 0.5s ease;
+  }
+
+  /* ========== GANGES MAIN ========== */
+  #ganges-main {
+    display: none;
+    min-height: 100vh;
+    position: relative;
+  }
+
+  #ganges-main.active { display: block; }
+
+  /* Turbidity overlay */
+  #turbidity {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 2s ease;
+    background: radial-gradient(ellipse at center,
+      transparent 0%,
+      rgba(26,18,8,0.3) 60%,
+      rgba(26,18,8,0.8) 100%);
+  }
+
+  #turbidity.murky { opacity: 1; }
+
+  /* Noise overlay */
+  #noise-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 11;
+    opacity: 0;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+  }
+
+  /* Main layout */
+  .ganges-wrap {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 6rem 2rem 4rem;
+    position: relative;
+    z-index: 2;
+  }
+
+  .ganges-header {
+    text-align: center;
+    margin-bottom: 4rem;
+  }
+
+  .ganges-name {
+    font-size: clamp(1.8rem, 5vw, 3.5rem);
+    letter-spacing: 0.15em;
+    color: var(--foam);
+    line-height: 1.2;
+    font-weight: 700;
+  }
+
+  .ganges-tagline {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--silt);
+    letter-spacing: 0.2em;
+    margin-top: 1rem;
+  }
+
+  /* Dive depth meter */
+  .depth-meter {
+    position: fixed;
+    left: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .depth-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.5rem;
+    color: var(--silt);
+    letter-spacing: 0.15em;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    margin-bottom: 0.5rem;
+  }
+
+  .depth-bar-outer {
+    width: 3px;
+    height: 120px;
+    background: var(--silt);
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .depth-bar-inner {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: linear-gradient(to top, var(--rot), var(--foam));
+    border-radius: 2px;
+    transition: height 1s ease;
+    height: 0%;
+  }
+
+  .depth-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    color: var(--foam);
+  }
+
+  /* Input zone */
+  .input-zone {
+    position: relative;
+    margin-bottom: 2rem;
+  }
+
+  .input-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.25em;
+    color: var(--silt);
+    margin-bottom: 0.75rem;
+    font-family: 'Space Mono', monospace;
+  }
+
+  #worry-input {
+    width: 100%;
+    background: rgba(45,31,10,0.6);
+    border: 1px solid var(--silt);
+    border-radius: 4px;
+    padding: 1.25rem;
+    color: var(--pale);
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1rem;
+    line-height: 1.8;
+    resize: none;
+    height: 160px;
+    outline: none;
+    transition: border-color 1s ease, background 2s ease, filter 2s ease;
+  }
+
+  #worry-input:focus {
+    border-color: var(--foam);
+  }
+
+  #worry-input.contaminated {
+    border-color: var(--rot);
+    filter: blur(0.3px);
+  }
+
+  .dive-btn {
+    display: block;
+    width: 100%;
+    padding: 1rem;
+    background: transparent;
+    border: 1px solid var(--silt);
+    color: var(--foam);
+    font-family: 'Shippori Mincho', serif;
+    font-size: 1rem;
+    letter-spacing: 0.3em;
+    cursor: pointer;
+    transition: all 0.5s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .dive-btn:hover {
+    background: rgba(200,169,110,0.08);
+    border-color: var(--foam);
+  }
+
+  .dive-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(200,169,110,0.1), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+  }
+
+  .dive-btn:hover::after { transform: translateX(100%); }
+
+  .dive-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* Virus stream */
+  #virus-stream {
+    margin-top: 2rem;
+    min-height: 300px;
+    position: relative;
+  }
+
+  .virus-block {
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    border-left: 1px solid transparent;
+    opacity: 0;
+    animation: virusIn 1.5s ease forwards;
+    position: relative;
+  }
+
+  .virus-block.type-5ch {
+    border-left-color: var(--silt);
+    background: rgba(45,31,10,0.3);
+  }
+
+  .virus-block.type-koten {
+    border-left-color: var(--foam);
+    background: rgba(61,90,42,0.1);
+    font-style: italic;
+  }
+
+  .virus-block.type-kankyo {
+    border-left-color: var(--rot);
+    background: rgba(92,42,10,0.15);
+    font-size: 0.85rem;
+  }
+
+  .virus-block.type-noise {
+    border-left-color: transparent;
+    filter: blur(0.5px);
+    font-size: 0.75rem;
+    color: var(--silt);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .virus-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.5rem;
+    letter-spacing: 0.2em;
+    color: var(--silt);
+    margin-bottom: 0.5rem;
+    opacity: 0.6;
+  }
+
+  .virus-text {
+    line-height: 1.9;
+    color: var(--pale);
+  }
+
+  @keyframes virusIn {
+    0% { opacity: 0; transform: translateX(-8px) skewX(-1deg); }
+    100% { opacity: 1; transform: translateX(0) skewX(0); }
+  }
+
+  /* Deeper prompt */
+  .deeper-prompt {
+    text-align: center;
+    padding: 2rem;
+    border: 1px dashed var(--silt);
+    margin: 2rem 0;
+    cursor: pointer;
+    transition: all 0.5s ease;
+    opacity: 0;
+    animation: virusIn 1s ease 0.5s forwards;
+  }
+
+  .deeper-prompt:hover {
+    border-color: var(--foam);
+    background: rgba(200,169,110,0.05);
+  }
+
+  .deeper-prompt span {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    color: var(--silt);
+  }
+
+  .deeper-prompt:hover span { color: var(--foam); }
+
+  /* Miracle exit */
+  #miracle-exit {
+    position: fixed;
+    inset: 0;
+    background: var(--white);
+    z-index: 500;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.1s ease;
+  }
+
+  #miracle-exit.flash {
+    opacity: 1;
+    pointer-events: all;
+    transition: opacity 0.05s ease;
+  }
+
+  #miracle-exit.settle {
+    opacity: 1;
+    pointer-events: all;
+    transition: opacity 2s ease;
+  }
+
+  .miracle-content {
+    max-width: 560px;
+    padding: 3rem 2rem;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 1.5s ease 0.8s;
+  }
+
+  #miracle-exit.settle .miracle-content {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .miracle-keywords {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 3rem;
+  }
+
+  .miracle-kw {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    color: var(--silt);
+    padding: 0.4rem 0.8rem;
+    border: 1px solid var(--silt);
+    border-radius: 2px;
+  }
+
+  .miracle-title {
+    font-size: clamp(0.9rem, 2vw, 1.2rem);
+    color: var(--mud);
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    margin-bottom: 2rem;
+  }
+
+  .miracle-text {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1rem;
+    line-height: 2.2;
+    color: var(--murk);
+    font-weight: 300;
+  }
+
+  .miracle-restart {
+    margin-top: 3rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--silt);
+    letter-spacing: 0.3em;
+    cursor: pointer;
+    padding: 1rem 2rem;
+    border: 1px solid var(--silt);
+    transition: all 0.5s;
+  }
+
+  .miracle-restart:hover {
+    color: var(--mud);
+    background: var(--mud);
+    border-color: var(--mud);
+    color: var(--ghost);
+  }
+
+  /* Character glitch on contamination */
+  @keyframes glitch {
+    0%, 100% { transform: none; opacity: 1; }
+    7% { transform: skewX(-15deg); opacity: 0.7; }
+    10% { transform: none; opacity: 1; }
+    27% { transform: none; }
+    28% { transform: skewX(10deg); opacity: 0.8; }
+    29% { transform: none; }
+  }
+
+  .glitching { animation: glitch 3s infinite; }
+
+  /* Bubble effects */
+  .bubble {
+    position: fixed;
+    width: 4px;
+    height: 4px;
+    background: rgba(200,169,110,0.3);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 5;
+    animation: rise linear forwards;
+  }
+
+  @keyframes rise {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-80px) scale(2); }
+  }
+
+  /* Loading pulse */
+  .loading-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: var(--silt);
+    border-radius: 50%;
+    margin: 0 3px;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  .loading-dot:nth-child(2) { animation-delay: 0.3s; }
+  .loading-dot:nth-child(3) { animation-delay: 0.6s; }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(0.6); opacity: 0.4; }
+    50% { transform: scale(1.2); opacity: 1; }
+  }
+
+  /* Sticky mud effect */
+  #mud-cursor {
+    position: fixed;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(200,169,110,0.4), transparent);
+    pointer-events: none;
+    z-index: 999;
+    transform: translate(-50%, -50%);
+    transition: width 0.3s, height 0.3s, opacity 0.3s;
+    mix-blend-mode: screen;
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .depth-meter { display: none; }
+    .ganges-wrap { padding: 4rem 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Mud cursor -->
+<div id="mud-cursor"></div>
+
+<!-- Turbidity overlay -->
+<div id="turbidity"></div>
+<div id="noise-overlay"></div>
+
+<!-- ===== SOURDOUGH GATE ===== -->
+<div id="sourdough-gate">
+  <div class="gate-title">The Sourdough Password</div>
+  <div class="gate-sub">毎日かき混ぜないと、腐る。</div>
+
+  <div id="stir-zone">
+    <canvas id="stir-canvas" width="220" height="220"></canvas>
+    <div class="stir-label" id="stir-label">円を描いてかき混ぜろ →</div>
+  </div>
+
+  <div id="ferment-status">発酵度: 0%</div>
+</div>
+
+<!-- ===== SLOWNESS GATE ===== -->
+<div id="slowness-gate">
+  <div class="ferment-words" id="ferment-words"></div>
+  <div class="ferment-bar-wrap">
+    <div class="ferment-bar" id="ferment-bar"></div>
+  </div>
+</div>
+
+<!-- ===== MIRACLE EXIT ===== -->
+<div id="miracle-exit">
+  <div class="miracle-content" id="miracle-content">
+    <div class="miracle-keywords" id="miracle-keywords"></div>
+    <div class="miracle-title" id="miracle-title"></div>
+    <div class="miracle-text" id="miracle-text"></div>
+    <div class="miracle-restart" onclick="restart()">← もう一度、潜る</div>
+  </div>
+</div>
+
+<!-- ===== GANGES MAIN ===== -->
+<div id="ganges-main">
+  <div class="depth-meter">
+    <div class="depth-label">DEPTH</div>
+    <div class="depth-bar-outer">
+      <div class="depth-bar-inner" id="depth-bar"></div>
+    </div>
+    <div class="depth-num" id="depth-num">0m</div>
+  </div>
+
+  <div class="ganges-wrap">
+    <div class="ganges-header">
+      <div class="ganges-name">The Ganges Dive</div>
+      <div class="ganges-tagline">解決しない。変質する。</div>
+    </div>
+
+    <div class="input-zone">
+      <div class="input-label">// 悩みを流せ</div>
+      <textarea id="worry-input" placeholder="ここに悩みを書く。解決策は出ない。"></textarea>
+    </div>
+
+    <button class="dive-btn" id="dive-btn" onclick="startDive()">
+      潜れ ↓
+    </button>
+
+    <div id="virus-stream"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const ANTHROPIC_KEY_STORAGE = 'ganges_anthropic_key';
+let apiKey = localStorage.getItem(ANTHROPIC_KEY_STORAGE) || '';
+
+// Depth & contamination state
+let depthLevel = 0;       // 0–100
+let diveCount = 0;        // how many times user dove
+let isMiracleTriggered = false;
+let currentWorry = '';
+let bubbleInterval = null;
+
+// Sourdough state
+let stirProgress = 0;     // 0–100
+let lastStirAngle = null;
+let isStirring = false;
+let stirSessionAngles = [];
+const STIR_NEEDED = 270;  // degrees to complete stirring
+
+// ============================================================
+// SOURDOUGH GATE — Canvas Stir
+// ============================================================
+const canvas = document.getElementById('stir-canvas');
+const ctx = canvas.getContext('2d');
+const cx = 110, cy = 110, r = 90;
+
+drawNukaBed(0);
+
+function drawNukaBed(progress) {
+  ctx.clearRect(0, 0, 220, 220);
+
+  // Outer circle
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#1a1208';
+  ctx.fill();
+  ctx.strokeStyle = '#4a3218';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Ferment texture — blobs
+  const blobCount = 18;
+  for (let i = 0; i < blobCount; i++) {
+    const a = (i / blobCount) * Math.PI * 2;
+    const rd = 20 + Math.sin(i * 3.7) * 18;
+    const bx = cx + Math.cos(a) * rd;
+    const by = cy + Math.sin(a) * rd;
+    const br = 4 + Math.sin(i * 2.1) * 3;
+    const alpha = 0.15 + Math.sin(i + progress / 30) * 0.1;
+    ctx.beginPath();
+    ctx.arc(bx, by, br, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(74,50,24,${alpha + 0.1})`;
+    ctx.fill();
+  }
+
+  // Progress arc
+  if (progress > 0) {
+    const startAngle = -Math.PI / 2;
+    const endAngle = startAngle + (progress / 100) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r - 8, startAngle, endAngle);
+    ctx.strokeStyle = `rgba(200,169,110,${0.3 + progress / 200})`;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+
+  // Center glyph
+  ctx.font = '24px Shippori Mincho, serif';
+  ctx.fillStyle = `rgba(200,169,110,${0.2 + progress / 150})`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('ぬ', cx, cy);
+}
+
+// Mouse/touch stir
+const stir = document.getElementById('stir-zone');
+
+function getAngle(x, y) {
+  const rect = stir.getBoundingClientRect();
+  const dx = x - rect.left - cx;
+  const dy = y - rect.top - cy;
+  return Math.atan2(dy, dx) * (180 / Math.PI);
+}
+
+function processStir(x, y) {
+  const dist = Math.hypot(
+    x - (stir.getBoundingClientRect().left + cx),
+    y - (stir.getBoundingClientRect().top + cy)
+  );
+  if (dist < 30 || dist > 105) return; // must be in annulus
+
+  const angle = getAngle(x, y);
+  if (lastStirAngle !== null) {
+    let delta = angle - lastStirAngle;
+    if (delta > 180) delta -= 360;
+    if (delta < -180) delta += 360;
+    if (Math.abs(delta) < 30) { // valid movement
+      stirProgress = Math.min(100, stirProgress + Math.abs(delta) / STIR_NEEDED * 100);
+      drawNukaBed(stirProgress);
+      document.getElementById('ferment-status').textContent = `発酵度: ${Math.round(stirProgress)}%`;
+      document.getElementById('ferment-status').className = 'active';
+      document.getElementById('stir-label').textContent = `かき混ぜ中... ${Math.round(stirProgress)}%`;
+    }
+  }
+  lastStirAngle = angle;
+
+  if (stirProgress >= 100) {
+    onStirComplete();
+  }
+}
+
+stir.addEventListener('mousemove', e => {
+  if (isStirring) processStir(e.clientX, e.clientY);
+});
+stir.addEventListener('mousedown', e => { isStirring = true; lastStirAngle = null; });
+stir.addEventListener('mouseup', () => { isStirring = false; lastStirAngle = null; });
+stir.addEventListener('mouseleave', () => { isStirring = false; lastStirAngle = null; });
+
+stir.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (e.touches.length) processStir(e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: false });
+stir.addEventListener('touchstart', e => { isStirring = true; lastStirAngle = null; });
+stir.addEventListener('touchend', () => { isStirring = false; lastStirAngle = null; });
+
+function onStirComplete() {
+  isStirring = false;
+  document.getElementById('stir-label').textContent = '準備完了。門が開く。';
+  document.getElementById('ferment-status').textContent = '発酵完了 — ガンジス川への扉が開く';
+  setTimeout(() => enterSlownessGate(), 1200);
+}
+
+// ============================================================
+// SLOWNESS GATE
+// ============================================================
+const slowWords = [
+  'ぬかの底で、何かが動いた',
+  '三億年前の菌が目を覚ます',
+  '効率という概念が腐敗し始める',
+  '待つことが、唯一の正解だった',
+  '扉は内側から開かない',
+  '時間が泥になる',
+  '中に入ることに、意味があるのか',
+  'それでも、川は流れている',
+];
+
+function enterSlownessGate() {
+  const gate = document.getElementById('sourdough-gate');
+  const slow = document.getElementById('slowness-gate');
+  gate.classList.add('dissolve');
+  setTimeout(() => {
+    gate.style.display = 'none';
+    slow.classList.add('visible');
+    animateSlownessWords();
+  }, 1500);
+}
+
+function animateSlownessWords() {
+  const container = document.getElementById('ferment-words');
+  const bar = document.getElementById('ferment-bar');
+  let idx = 0;
+  const total = slowWords.length;
+
+  function showNext() {
+    if (idx >= total) {
+      setTimeout(() => enterGanges(), 2000);
+      return;
+    }
+    const word = document.createElement('div');
+    word.className = 'ferment-word';
+    word.textContent = slowWords[idx];
+    container.appendChild(word);
+    const progress = ((idx + 1) / total) * 100;
+    bar.style.width = progress + '%';
+    idx++;
+    const delay = 2200 + Math.random() * 1800;
+    setTimeout(showNext, delay);
+  }
+
+  showNext();
+}
+
+function enterGanges() {
+  const slow = document.getElementById('slowness-gate');
+  slow.style.opacity = '0';
+  setTimeout(() => {
+    slow.style.display = 'none';
+    const main = document.getElementById('ganges-main');
+    main.classList.add('active');
+    startBubbles();
+  }, 1000);
+}
+
+// ============================================================
+// GANGES MAIN — Virus Engine
+// ============================================================
+
+// Virus templates
+const virusTemplates = {
+  '5ch': [
+    '>>1 それって本当に悩みなの？俺の地元の猫の方がよっぽど深刻な顔してるわ',
+    '>>12 まじで意味わかんね。でもなんか分かる気もする。飯食った？',
+    '>>355 結論：全部どうでもいい。寝ろ',
+    '>>7 スレ主さ、これ絶対違うくだりで出てきたやつじゃん',
+    'ワイ、これ見て急に部屋の掃除したくなったわ。なんでやろ',
+    '>>99 インターネット老人会だけど、20年前も同じこと言ってたぞ',
+    '草。でも泣いた。',
+    'これ結局人類の問題全部含んでるやん',
+    '>>88 そういう次元じゃなくない？宇宙の話しようや',
+  ],
+  koten: [
+    '月日は百代の過客にして、行かふ年も又旅人也——いずこへ行くとも、いずこより来たるとも知れず。',
+    '祇園精舎の鐘の声、諸行無常の響きあり。かかる悩みも、また泡のごとし。',
+    '竹取の翁、惑いを竹に聞けば、竹は語らず、ただしなやかに揺れるのみ。',
+    'をりふしの悲しみは、名のつけようのない種類のものである——清少納言、未発見の草子より',
+    '人はなべて、何かを失いながら歩くものなり。それが足跡というものにて候。',
+    '夢は逃げない。逃げるのはいつも自分だ——江戸末期、どこかの無名の職人のメモより',
+    '問ふに問へず、知るに知れず。それが悟りの入り口なり。',
+  ],
+  kankyo: [
+    '🌿 アマゾン熱帯雨林 / 降水量3,800mm地帯 / 17:23 現地時間 / ケツァールが鳴いている / 湿度98% / 人間の声は届かない',
+    '🌊 ガンジス川支流 バグマティ川 / 水温14.2℃ / 視程0m / 底には誰も知らない石がある / 流速2.1m/s',
+    '🌋 アイスランド Þórsmörk渓谷 / 気温-3℃ / 地熱+12℃（地中） / 溶岩の記憶は1万年以上 / 人の悩みは何年持つか',
+    '🌫 チベット高原 / 標高4,900m / 大気中酸素濃度60% / 思考が遅くなる / それが本来の速さかもしれない',
+    '🦠 深海熱水噴出孔 / 水深2,400m / 水温370℃ / そこで暮らす菌は35億年の歴史を持つ / あなたの悩みは何年か',
+  ],
+  noise: [
+    'ERR_CONTEXT_OVERFLOW: 0x4F2A → 0x0000 → [NULL]',
+    '̶̷̡̧̛̹̰̻̣̯͍̭̤͚͉̝̰͙̹̼̻͉̮̬̦̀̐̒̓̿̽̓͋̈́̌̊̄̾̄͌͋̑̚͘͜͝͝ͅ悩̴̡̛̗̖͉̗̬͎̟̠͓͓̫̩̟̗̣̘͋̌̈́͛̓͊́̓̍̏͛́̿͋̀̃̿͘̕み̵̡͔̣̖̭̯̗̗͙̰̣͙͕͔͕͇̮̿̾͑̑̄͑͌̀̒̐̾͒͑̃̾̅̓̕͝͝',
+    '// signal lost at depth 47m',
+    '   . . . . . . . . . . . . ',
+    'VIRUS_INJECTED: semantic_drift.exe',
+    'ここは言葉の届かない場所',
+    '404: 解決策が見つかりません / そもそも探していない',
+    '[RECORDING STOPPED] [STATIC] [STATIC] [RECORDING RESUMED]',
+  ],
+};
+
+const miracleFormats = [
+  {
+    type: 'SF小説のあらすじ',
+    generate: (kw) => `西暦2387年。${kw[0]}という概念がウイルスとして大気圏に拡散した年から、人類は${kw[1]}を失った。ただひとりの女が、廃墟となった${kw[2]}の底に潜り、忘れられた答えを探していた。`,
+  },
+  {
+    type: '発酵食品のレシピ',
+    generate: (kw) => `【${kw[0]}の発酵漬け 72時間仕込み】\n材料：${kw[0]}（適量）、${kw[1]}の記憶（塩と同量）、${kw[2]}の欠片（ひとつまみ）。\n仕込み：すべてを甕に入れ、72時間放置する。食べごろは、もう気にしなくなったとき。`,
+  },
+  {
+    type: '民俗学の断片',
+    generate: (kw) => `北欧のある村では、${kw[0]}を感じたとき、それを川に流す儀式がある。${kw[1]}という言葉を三度唱え、${kw[2]}を石に刻む。翌朝には、すでに別の問いが生まれている。`,
+  },
+  {
+    type: '火星探査レポート（2041年）',
+    generate: (kw) => `火星基地ARES-7 定期報告書。クルーの一名が「${kw[0]}」について反復的な言及を開始。地球との通信遅延18分の中で、${kw[1]}という語が34回記録された。${kw[2]}への言及は、帰還日の前夜に消えた。`,
+  },
+  {
+    type: '廃業した洗濯屋の張り紙',
+    generate: (kw) => `お知らせ。当店は${kw[0]}の汚れを専門とし、三十年営業してまいりました。しかし${kw[1]}の落とし方だけは、ついに分かりませんでした。${kw[2]}はお持ち帰りください。長い間ありがとうございました。`,
+  },
+];
+
+// ============================================================
+// Main dive logic
+// ============================================================
+async function startDive() {
+  const input = document.getElementById('worry-input');
+  const worry = input.value.trim();
+  if (!worry) return;
+
+  currentWorry = worry;
+  diveCount++;
+
+  const btn = document.getElementById('dive-btn');
+  btn.disabled = true;
+  btn.textContent = '沈んでいる...';
+
+  // Update depth
+  depthLevel = Math.min(90, depthLevel + 25 + Math.random() * 15);
+  updateDepth();
+
+  // Contaminate textarea
+  input.classList.add('contaminated');
+  if (depthLevel > 60) input.classList.add('glitching');
+
+  // Turbidity
+  if (depthLevel > 40) {
+    document.getElementById('turbidity').classList.add('murky');
+    document.getElementById('noise-overlay').style.opacity = (depthLevel - 40) / 150 + '';
+  }
+
+  // Body background darkens
+  document.body.style.background = `hsl(35, ${60 - depthLevel * 0.3}%, ${8 - depthLevel * 0.04}%)`;
+
+  // Should we trigger miracle exit?
+  const miracleTrigger = depthLevel >= 80 && !isMiracleTriggered;
+
+  if (miracleTrigger) {
+    await showVirusStream(worry, true);
+  } else {
+    await showVirusStream(worry, false);
+    showDeeperPrompt();
+    btn.disabled = false;
+    btn.textContent = 'もっと深く ↓↓';
+  }
+}
+
+async function showVirusStream(worry, isFinal) {
+  const stream = document.getElementById('virus-stream');
+
+  // Show loading dots
+  const loading = document.createElement('div');
+  loading.style.textAlign = 'center';
+  loading.style.padding = '2rem';
+  loading.innerHTML = '<span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>';
+  stream.appendChild(loading);
+
+  // Get virus content from AI or fallback
+  let virusBlocks;
+  try {
+    virusBlocks = await getVirusFromAI(worry);
+  } catch (e) {
+    virusBlocks = getVirusFallback();
+  }
+
+  loading.remove();
+
+  // Inject virus blocks with staggered delays
+  for (let i = 0; i < virusBlocks.length; i++) {
+    const block = virusBlocks[i];
+    await delay(800 + Math.random() * 600);
+    renderVirusBlock(stream, block);
+    spawnBubble();
+  }
+
+  if (isFinal) {
+    await delay(3000);
+    triggerMiracleExit(worry);
+  }
+}
+
+function renderVirusBlock(container, block) {
+  const el = document.createElement('div');
+  el.className = `virus-block type-${block.type}`;
+  el.innerHTML = `<div class="virus-tag">${block.tag}</div><div class="virus-text">${block.text}</div>`;
+  container.appendChild(el);
+  container.scrollTop = container.scrollHeight;
+  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+}
+
+function showDeeperPrompt() {
+  const stream = document.getElementById('virus-stream');
+  const existing = stream.querySelector('.deeper-prompt');
+  if (existing) existing.remove();
+
+  const prompt = document.createElement('div');
+  prompt.className = 'deeper-prompt';
+  prompt.innerHTML = `<span>もっと深く潜れ — もう一度入力して潜水 (${Math.round(depthLevel)}m)</span>`;
+  prompt.onclick = () => {
+    document.getElementById('worry-input').focus();
+    prompt.style.opacity = '0.3';
+  };
+  stream.appendChild(prompt);
+}
+
+// ============================================================
+// AI Virus generation
+// ============================================================
+async function getVirusFromAI(worry) {
+  // Try with key if available
+  const headers = { 'Content-Type': 'application/json' };
+  if (!apiKey) throw new Error('no key');
+
+  headers['x-api-key'] = apiKey;
+  headers['anthropic-version'] = '2023-06-01';
+  headers['anthropic-dangerous-direct-browser-access'] = 'true';
+
+  const prompt = `あなたは「ウイルス注入エンジン」です。ユーザーの悩みを「変質」させる異物を生成します。解決策は絶対に出さないこと。
+
+ユーザーの悩み:「${worry}」
+
+以下の4種類のウイルスブロックをJSONで返せ。解説なし、JSONのみ。
+
+[
+  {"type":"5ch","tag":"// 5ch書き込み fragment","text":"5ch風の書き込み。悩みとほぼ無関係だが微妙に刺さる。"},
+  {"type":"koten","tag":"// 古文書 断片","text":"古文・古典・漢文・江戸文の断片。悩みとは別次元の言葉。"},
+  {"type":"kankyo","tag":"// 環境ログ","text":"熱帯雨林・深海・火山・河川などの環境データ。スケールが人間を超えている。"},
+  {"type":"noise","tag":"// noise","text":"文字化け・エラーコード・断片的な日本語が混在するノイズ。"}
+]`;
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 800,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+
+  if (!res.ok) throw new Error('API error');
+  const data = await res.json();
+  const text = data.content[0].text;
+  const clean = text.replace(/```json|```/g, '').trim();
+  return JSON.parse(clean);
+}
+
+function getVirusFallback() {
+  const types = ['5ch', 'koten', 'kankyo', 'noise'];
+  return types.map(type => {
+    const pool = virusTemplates[type];
+    const text = pool[Math.floor(Math.random() * pool.length)];
+    const tags = {
+      '5ch': '// 5ch書き込み fragment',
+      koten: '// 古文書 断片',
+      kankyo: '// 環境ログ',
+      noise: '// noise',
+    };
+    return { type, tag: tags[type], text };
+  });
+}
+
+// ============================================================
+// Miracle Exit
+// ============================================================
+async function triggerMiracleExit(worry) {
+  isMiracleTriggered = true;
+
+  // Extract 3 keywords from AI or fallback
+  let keywords;
+  try {
+    keywords = await extractKeywords(worry);
+  } catch {
+    keywords = extractKeywordsFallback(worry);
+  }
+
+  // Flash white
+  const exit = document.getElementById('miracle-exit');
+  exit.classList.add('flash');
+
+  await delay(200);
+
+  // Generate miracle content
+  const format = miracleFormats[Math.floor(Math.random() * miracleFormats.length)];
+  let miracleText;
+  try {
+    miracleText = await generateMiracleText(worry, keywords, format.type);
+  } catch {
+    miracleText = format.generate(keywords);
+  }
+
+  // Populate miracle content
+  const kwContainer = document.getElementById('miracle-keywords');
+  keywords.forEach(kw => {
+    const el = document.createElement('div');
+    el.className = 'miracle-kw';
+    el.textContent = kw;
+    kwContainer.appendChild(el);
+  });
+
+  document.getElementById('miracle-title').textContent = `— ${format.type} として再構成 —`;
+  document.getElementById('miracle-text').textContent = miracleText;
+
+  exit.classList.remove('flash');
+  exit.classList.add('settle');
+}
+
+async function extractKeywords(worry) {
+  if (!apiKey) return extractKeywordsFallback(worry);
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 100,
+      messages: [{
+        role: 'user',
+        content: `以下の悩みから感情・概念・状況を表すキーワードを3つだけ抽出。JSONで ["kw1","kw2","kw3"] の形式のみ返せ。\n\n${worry}`,
+      }],
+    }),
+  });
+
+  const data = await res.json();
+  const text = data.content[0].text.replace(/```json|```/g, '').trim();
+  return JSON.parse(text);
+}
+
+function extractKeywordsFallback(worry) {
+  const words = worry.replace(/[、。！？\s]/g, ' ').split(' ').filter(w => w.length > 1);
+  const selected = [];
+  const used = new Set();
+  while (selected.length < 3 && words.length > 0) {
+    const idx = Math.floor(Math.random() * words.length);
+    if (!used.has(words[idx])) { selected.push(words[idx]); used.add(words[idx]); }
+    if (selected.length >= words.length) break;
+  }
+  while (selected.length < 3) selected.push(['変化', '静寂', '余白'][selected.length]);
+  return selected;
+}
+
+async function generateMiracleText(worry, keywords, format) {
+  if (!apiKey) throw new Error('no key');
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 300,
+      messages: [{
+        role: 'user',
+        content: `以下のキーワード3つ（${keywords.join('、')}）と悩みの文脈（「${worry}」）を素材に、「${format}」として短く再構成してください。解決策は絶対に出さない。元の悩みとは別の景色へ連れて行くこと。100〜150字以内。`,
+      }],
+    }),
+  });
+
+  const data = await res.json();
+  return data.content[0].text.trim();
+}
+
+// ============================================================
+// Depth meter
+// ============================================================
+function updateDepth() {
+  const bar = document.getElementById('depth-bar');
+  const num = document.getElementById('depth-num');
+  bar.style.height = depthLevel + '%';
+  num.textContent = Math.round(depthLevel * 4.7) + 'm';
+}
+
+// ============================================================
+// Bubbles
+// ============================================================
+function startBubbles() {
+  bubbleInterval = setInterval(spawnBubble, 3000);
+}
+
+function spawnBubble() {
+  const b = document.createElement('div');
+  b.className = 'bubble';
+  b.style.left = (Math.random() * 100) + 'vw';
+  b.style.bottom = (Math.random() * 50) + 'vh';
+  b.style.animationDuration = (3 + Math.random() * 4) + 's';
+  b.style.width = b.style.height = (3 + Math.random() * 5) + 'px';
+  document.body.appendChild(b);
+  setTimeout(() => b.remove(), 7000);
+}
+
+// ============================================================
+// Mud cursor
+// ============================================================
+const mudCursor = document.getElementById('mud-cursor');
+document.addEventListener('mousemove', e => {
+  mudCursor.style.left = e.clientX + 'px';
+  mudCursor.style.top = e.clientY + 'px';
+});
+
+// ============================================================
+// API Key prompt (silent — asks only once)
+// ============================================================
+function checkApiKey() {
+  if (!apiKey) {
+    // Show subtle prompt after entering ganges
+    setTimeout(() => {
+      const keyPrompt = document.createElement('div');
+      keyPrompt.style.cssText = `position:fixed;bottom:1.5rem;right:1.5rem;z-index:100;font-family:'Space Mono',monospace;font-size:0.55rem;color:var(--silt);cursor:pointer;letter-spacing:0.15em;padding:0.5rem;border:1px solid var(--silt);border-radius:2px;transition:color 0.3s;`;
+      keyPrompt.textContent = 'API KEY →';
+      keyPrompt.title = 'Anthropic APIキーを設定すると、よりパーソナルなウイルスが注入される';
+      keyPrompt.addEventListener('mouseenter', () => keyPrompt.style.color = 'var(--foam)');
+      keyPrompt.addEventListener('mouseleave', () => keyPrompt.style.color = 'var(--silt)');
+      keyPrompt.addEventListener('click', () => {
+        const k = prompt('Anthropic API Key（空白でスキップ、フォールバックモードで動作）:');
+        if (k && k.startsWith('sk-')) {
+          apiKey = k;
+          localStorage.setItem(ANTHROPIC_KEY_STORAGE, k);
+          keyPrompt.textContent = 'API KEY ✓';
+        }
+      });
+      document.body.appendChild(keyPrompt);
+    }, 2000);
+  }
+}
+
+// ============================================================
+// Restart
+// ============================================================
+function restart() {
+  isMiracleTriggered = false;
+  depthLevel = 0;
+  diveCount = 0;
+  currentWorry = '';
+  document.getElementById('miracle-exit').className = '';
+  document.getElementById('miracle-exit').style.opacity = '0';
+  document.getElementById('miracle-exit').style.pointerEvents = 'none';
+  document.getElementById('miracle-keywords').innerHTML = '';
+  document.getElementById('miracle-title').textContent = '';
+  document.getElementById('miracle-text').textContent = '';
+  document.getElementById('virus-stream').innerHTML = '';
+  document.getElementById('worry-input').value = '';
+  document.getElementById('worry-input').className = '';
+  document.getElementById('depth-bar').style.height = '0%';
+  document.getElementById('depth-num').textContent = '0m';
+  document.getElementById('turbidity').classList.remove('murky');
+  document.getElementById('noise-overlay').style.opacity = '0';
+  document.body.style.background = '';
+  const btn = document.getElementById('dive-btn');
+  btn.disabled = false;
+  btn.textContent = '潜れ ↓';
+}
+
+// ============================================================
+// Utils
+// ============================================================
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Init
+window.addEventListener('load', () => {
+  checkApiKey();
+});
+</script>
+</body>
+</html>
