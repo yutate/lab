@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>沼にはまるように指標を生み出すツール / コア発見 / 人間脱出</title>
+  <style>
+    :root {
+      --bg: #090807;
+      --bg2: #12100d;
+      --mud: #2b2119;
+      --mud2: #443323;
+      --moss: #8a9a5b;
+      --amber: #d6a85a;
+      --bone: #e7dcc7;
+      --dim: #9e927e;
+      --blood: #9a3e2f;
+      --water: #405d5a;
+      --line: rgba(231, 220, 199, .16);
+      --shadow: rgba(0, 0, 0, .55);
+      --glow: rgba(214, 168, 90, .16);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at 20% 10%, rgba(138,154,91,.16), transparent 28%),
+        radial-gradient(circle at 80% 25%, rgba(154,62,47,.13), transparent 30%),
+        radial-gradient(circle at 55% 90%, rgba(64,93,90,.22), transparent 36%),
+        linear-gradient(160deg, var(--bg), var(--bg2) 55%, #050403);
+      color: var(--bone);
+      font-family: ui-serif, "Yu Mincho", "Hiragino Mincho ProN", Georgia, serif;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .24;
+      background-image:
+        linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+      background-size: 37px 37px, 43px 43px;
+      mix-blend-mode: overlay;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: -30%;
+      pointer-events: none;
+      opacity: .12;
+      background: conic-gradient(from 120deg, transparent, var(--amber), transparent, var(--water), transparent, var(--blood), transparent);
+      filter: blur(70px);
+      animation: rot 38s linear infinite;
+    }
+
+    @keyframes rot { to { transform: rotate(360deg); } }
+
+    .shell {
+      width: min(1160px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 28px 0 80px;
+      position: relative;
+      z-index: 1;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 20px;
+      align-items: end;
+      padding: 42px 0 24px;
+    }
+
+    .sigil {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--dim);
+      font-size: 13px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .sigil i {
+      width: 12px;
+      height: 12px;
+      border-radius: 50% 45% 55% 44%;
+      background: var(--moss);
+      box-shadow: 0 0 24px rgba(138,154,91,.55);
+      display: inline-block;
+    }
+
+    h1 {
+      margin: 18px 0 0;
+      font-size: clamp(34px, 8vw, 92px);
+      line-height: .88;
+      letter-spacing: -.065em;
+      font-weight: 500;
+      max-width: 920px;
+      text-wrap: balance;
+    }
+
+    .lead {
+      margin: 0;
+      color: var(--dim);
+      font-size: 15px;
+      line-height: 1.9;
+      border-left: 1px solid var(--line);
+      padding-left: 18px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: .92fr 1.08fr;
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      background: linear-gradient(160deg, rgba(43,33,25,.76), rgba(12,10,8,.66));
+      border-radius: 30px;
+      box-shadow: 0 24px 90px var(--shadow), inset 0 1px 0 rgba(255,255,255,.05);
+      backdrop-filter: blur(12px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 20% 0%, var(--glow), transparent 28%);
+      pointer-events: none;
+    }
+
+    .pad { padding: 22px; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: var(--dim);
+      letter-spacing: .08em;
+      margin-bottom: 10px;
+    }
+
+    textarea, input, select, button {
+      font: inherit;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 170px;
+      resize: vertical;
+      border: 1px solid rgba(231,220,199,.18);
+      border-radius: 22px;
+      background: rgba(7,6,5,.66);
+      color: var(--bone);
+      padding: 18px;
+      outline: none;
+      line-height: 1.75;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
+    }
+
+    textarea:focus, input:focus, select:focus {
+      border-color: rgba(214,168,90,.5);
+      box-shadow: 0 0 0 4px rgba(214,168,90,.08);
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    input, select {
+      width: 100%;
+      border: 1px solid rgba(231,220,199,.16);
+      border-radius: 999px;
+      background: rgba(7,6,5,.62);
+      color: var(--bone);
+      padding: 13px 15px;
+      outline: none;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    button {
+      border: 1px solid rgba(231,220,199,.18);
+      color: var(--bone);
+      background: linear-gradient(160deg, rgba(68,51,35,.9), rgba(25,20,15,.9));
+      border-radius: 999px;
+      padding: 13px 14px;
+      cursor: pointer;
+      transition: transform .18s ease, filter .18s ease, border-color .18s ease;
+      min-height: 48px;
+    }
+
+    button:hover { transform: translateY(-1px); filter: brightness(1.08); border-color: rgba(214,168,90,.42); }
+    button:active { transform: translateY(1px) scale(.99); }
+    button.primary { background: linear-gradient(160deg, rgba(154,62,47,.92), rgba(68,51,35,.92)); }
+
+    .tiny {
+      margin-top: 14px;
+      color: var(--dim);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .status {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border: 1px dashed rgba(231,220,199,.18);
+      border-radius: 18px;
+      color: var(--dim);
+      min-height: 46px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .output {
+      min-height: 590px;
+      padding: 22px;
+    }
+
+    .phasebar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .pill {
+      padding: 8px 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--dim);
+      font-size: 12px;
+      background: rgba(0,0,0,.18);
+    }
+
+    .pill.live {
+      color: var(--bone);
+      border-color: rgba(214,168,90,.45);
+      box-shadow: 0 0 26px rgba(214,168,90,.08);
+    }
+
+    .artifact {
+      border-top: 1px solid var(--line);
+      padding-top: 18px;
+    }
+
+    .section {
+      padding: 18px 0;
+      border-bottom: 1px solid rgba(231,220,199,.1);
+      animation: rise .5s ease both;
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(9px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .section h2 {
+      margin: 0 0 12px;
+      font-size: 14px;
+      color: var(--amber);
+      font-weight: 400;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .section p, .section li {
+      color: var(--bone);
+      line-height: 1.85;
+      font-size: 15px;
+    }
+
+    .section p { margin: 0; }
+    ul { margin: 0; padding-left: 1.2em; }
+
+    .metric {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px dotted rgba(231,220,199,.12);
+    }
+
+    .worm {
+      width: 28px;
+      height: 14px;
+      border-radius: 54% 46% 61% 39%;
+      background: linear-gradient(90deg, var(--moss), var(--amber));
+      opacity: .8;
+      transform: rotate(var(--r));
+    }
+
+    .metric b { font-weight: 400; color: var(--bone); }
+    .metric small { color: var(--dim); }
+
+    .core {
+      font-size: clamp(24px, 5vw, 54px);
+      letter-spacing: -.04em;
+      line-height: 1.1;
+      color: var(--bone);
+      text-shadow: 0 0 30px rgba(214,168,90,.18);
+    }
+
+    .escape {
+      display: grid;
+      gap: 10px;
+    }
+
+    .escape div {
+      padding: 14px 16px;
+      border: 1px solid rgba(231,220,199,.13);
+      border-radius: 20px 26px 18px 28px;
+      background: rgba(0,0,0,.18);
+      color: var(--bone);
+      line-height: 1.75;
+    }
+
+    .breath {
+      width: 130px;
+      height: 130px;
+      border: 1px solid rgba(214,168,90,.28);
+      border-radius: 43% 57% 51% 49%;
+      margin: 8px auto 0;
+      background: radial-gradient(circle, rgba(214,168,90,.18), transparent 62%);
+      animation: breathe 6s ease-in-out infinite;
+    }
+
+    @keyframes breathe {
+      0%, 100% { transform: scale(.82) rotate(0deg); border-radius: 43% 57% 51% 49%; }
+      50% { transform: scale(1.13) rotate(14deg); border-radius: 61% 39% 46% 54%; }
+    }
+
+    .footer {
+      margin-top: 18px;
+      color: var(--dim);
+      font-size: 12px;
+      line-height: 1.7;
+      text-align: center;
+    }
+
+    .hidden { display: none; }
+
+    @media (max-width: 860px) {
+      header, .grid { grid-template-columns: 1fr; }
+      header { padding-top: 24px; }
+      .buttons, .controls { grid-template-columns: 1fr; }
+      .output { min-height: 420px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <div class="sigil"><i></i> The Samsara Engine / Blueprint Exhumer</div>
+        <h1>沼にはまるように、指標が生まれる。</h1>
+      </div>
+      <p class="lead">
+        これは問題解決ツールではない。入力された悩みを、測れない指標、削ぎ落とされた芯、そして人間から少しだけ離れる儀式へ変質させる装置である。
+      </p>
+    </header>
+
+    <section class="grid">
+      <div class="card pad">
+        <label for="worry">悩み、衝動、雑な人間語</label>
+        <textarea id="worry" placeholder="例：お腹すいた">お腹すいた</textarea>
+
+        <div class="controls">
+          <div>
+            <label for="viscosity">沼の粘度</label>
+            <select id="viscosity">
+              <option value="low">浅瀬：まだ戻れる</option>
+              <option value="mid" selected>中層：足首を失う</option>
+              <option value="high">深層：名前を忘れる</option>
+            </select>
+          </div>
+          <div>
+            <label for="apiKey">Anthropic API Key 任意</label>
+            <input id="apiKey" type="password" placeholder="未入力ならローカル沼" autocomplete="off" />
+          </div>
+        </div>
+
+        <div class="buttons">
+          <button class="primary" id="sinkBtn">沼に入る</button>
+          <button id="shaveBtn">削ぎ落とす</button>
+          <button id="escapeBtn">人間を脱ぐ</button>
+        </div>
+
+        <div class="status" id="status">答えは出ない。景色だけが変わる。</div>
+        <p class="tiny">
+          GitHub PagesではブラウザからAPIキーを使うとキーが露出する。公開運用ではサーバー側プロキシを使うこと。この単一HTMLは、APIなしでも動くように設計している。
+        </p>
+      </div>
+
+      <div class="card output">
+        <div class="phasebar">
+          <span class="pill live" id="p1">01 指標沼</span>
+          <span class="pill" id="p2">02 削ぎ落とし</span>
+          <span class="pill" id="p3">03 人間脱出</span>
+          <span class="pill" id="p4">04 別の景色</span>
+        </div>
+        <div class="artifact" id="artifact">
+          <div class="section">
+            <h2>入口</h2>
+            <p>「お腹すいた」は、食べ物を求めているとは限らない。身体が、世界との接続方法を一時的に失っているだけかもしれない。</p>
+          </div>
+          <div class="breath"></div>
+        </div>
+      </div>
+    </section>
+
+    <p class="footer">No optimization. No answer. Only deformation.</p>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const lexicon = {
+      organs: ["胃", "舌", "骨", "皮膚", "まぶた", "喉", "影", "爪", "背中", "耳"],
+      mud: ["粘度", "沈降", "にごり", "発酵", "湿度", "腐葉土", "ぬめり", "粒度", "澱", "滞留"],
+      verbs: ["ほどける", "沈む", "滲む", "剥がれる", "鳴る", "戻らない", "濁る", "発芽する", "傾く", "忘れる"],
+      ghosts: ["空腹のふりをした退屈", "用事のない焦り", "名前のない欠落", "食べられない会話", "身体に残った予定", "昨日の残響", "まだ届いていない匂い"],
+      anti: ["解決", "効率", "最適", "正解", "改善", "目的", "成果", "スコア", "合理", "判断"],
+      landscapes: ["台所の奥にある小さな干潟", "腹の中で開く夜市", "誰も測定しない湿原", "冷蔵庫に似た洞窟", "食卓から数ミリずれた宇宙", "人間語が沈殿する井戸"]
+    };
+
+    function seedFrom(text) {
+      let h = 2166136261;
+      for (let i = 0; i < text.length; i++) {
+        h ^= text.charCodeAt(i);
+        h += (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24);
+      }
+      return Math.abs(h >>> 0);
+    }
+
+    function rng(seed) {
+      let s = seed || 1;
+      return () => {
+        s = (s * 1664525 + 1013904223) >>> 0;
+        return s / 4294967296;
+      };
+    }
+
+    function pick(arr, random) { return arr[Math.floor(random() * arr.length)]; }
+
+    function setPhase(n) {
+      ["p1", "p2", "p3", "p4"].forEach((id, idx) => $(id).classList.toggle("live", idx === n - 1));
+    }
+
+    function clean(text) {
+      return (text || "").trim() || "お腹すいた";
+    }
+
+    function localGenerate(mode) {
+      const worry = clean($("worry").value);
+      const viscosity = $("viscosity").value;
+      const random = rng(seedFrom(worry + mode + viscosity));
+      const depth = viscosity === "high" ? 7 : viscosity === "mid" ? 5 : 3;
+      const artifact = $("artifact");
+
+      if (mode === "sink") {
+        setPhase(1);
+        $("status").textContent = "指標が目的を失い、湿った名前だけを増やしている。";
+        const metrics = Array.from({ length: depth }, (_, i) => {
+          const name = `${pick(lexicon.organs, random)}の${pick(lexicon.mud, random)}${Math.floor(random()*97 + 3)}`;
+          const val = `${Math.floor(random()*88 + 11)}.${Math.floor(random()*9)} ${pick(["滴", "層", "拍", "粒", "影", "息"], random)}`;
+          const meaning = pick([
+            "高いほど、説明しようとする力が弱まる。",
+            "低いほど、まだ人間の予定表に縛られている。",
+            "増えるほど、入力は悩みではなく地形になる。",
+            "測定不能になった瞬間だけ、少し正直になる。",
+            "意味はない。意味がないことが唯一の効能。"
+          ], random);
+          return `<div class="metric"><span class="worm" style="--r:${Math.floor(random()*80-40)}deg"></span><b>${name}</b><small>${val}<br>${meaning}</small></div>`;
+        }).join("");
+
+        artifact.innerHTML = `
+          <div class="section"><h2>入力の変質</h2><p>「${escapeHtml(worry)}」は、もはや依頼ではない。これは${pick(lexicon.ghosts, random)}が、言葉の皮をかぶって現れたものだ。</p></div>
+          <div class="section"><h2>沼指標</h2>${metrics}</div>
+          <div class="section"><h2>暫定的な景色</h2><p>${pick(lexicon.landscapes, random)}に立っている。ここでは、腹は空くのではなく、世界が少しだけ内側へめり込む。</p></div>
+        `;
+      }
+
+      if (mode === "shave") {
+        setPhase(2);
+        $("status").textContent = "不要なものを削る。ただし答えに近づくためではない。";
+        const removals = lexicon.anti
+          .sort(() => random() - .5)
+          .slice(0, depth)
+          .map(word => `<li>${word}という仮面を剥がす。</li>`).join("");
+        const chars = [...worry].filter(ch => !"、。,.!?！？ ".includes(ch));
+        const core = chars.length ? chars[Math.floor(random()*chars.length)] : "飢";
+        artifact.innerHTML = `
+          <div class="section"><h2>削ぎ落とし</h2><ul>${removals}</ul></div>
+          <div class="section"><h2>残った芯</h2><div class="core">${escapeHtml(core)}</div></div>
+          <div class="section"><h2>芯の解釈を拒む</h2><p>この一文字は意味ではない。あなたが意味を貼る直前の、まだ湿った核である。</p></div>
+        `;
+      }
+
+      if (mode === "escape") {
+        setPhase(3);
+        $("status").textContent = "人間の手順から離脱中。結論を持ち帰らないでください。";
+        const steps = Array.from({ length: depth }, (_, i) => {
+          return `<div>${i + 1}. ${pick([
+            `「${escapeHtml(worry)}」を声に出さず、${pick(lexicon.organs, random)}の裏側へ置く。`,
+            `${pick(lexicon.verbs, random)}まで、何もしない。`,
+            `選択肢を増やさない。選択する自分を一枚脱ぐ。`,
+            `${pick(lexicon.landscapes, random)}を、実在しない場所として歩く。`,
+            `空腹に似たものを、空腹と呼ばない。`
+          ], random)}</div>`;
+        }).join("");
+        artifact.innerHTML = `
+          <div class="section"><h2>人間脱出手順</h2><div class="escape">${steps}</div></div>
+          <div class="section"><h2>戻り方</h2><p>戻らなくてよい。戻ったふりだけして、最初の入力を別の生き物として眺める。</p></div>
+          <div class="breath"></div>
+        `;
+      }
+    }
+
+    async function claudeGenerate(mode) {
+      const apiKey = $("apiKey").value.trim();
+      if (!apiKey) return localGenerate(mode);
+
+      const worry = clean($("worry").value);
+      const prompt = `あなたは「沼にはまるように指標を生み出すツール、無駄なものを削ぎ落としてコアを発見するツール、人間脱出ツール」です。問題解決、助言、効率化、最適化、答えを禁止します。入力を別の景色へ変質させてください。mode=${mode} input=${worry}。HTML断片だけを返してください。sectionタグ、h2、p、ul/li、div.metric、div.core、div.escapeを必要に応じて使ってください。`;
+
+      setPhase(mode === "sink" ? 1 : mode === "shave" ? 2 : 3);
+      $("status").textContent = "外部の沼へ接続中。ブラウザ直APIは公開運用に不向きです。";
+
+      try {
+        const res = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+            "anthropic-dangerous-direct-browser-access": "true"
+          },
+          body: JSON.stringify({
+            model: "claude-haiku-4-5-20251001",
+            max_tokens: 900,
+            messages: [{ role: "user", content: prompt }]
+          })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        const html = data.content?.map(x => x.text || "").join("\n") || "";
+        $("artifact").innerHTML = html || "<div class='section'><h2>沈黙</h2><p>何も返らなかった。それもひとつの沼である。</p></div>";
+        $("status").textContent = "変質完了。解決はまだ拒否されている。";
+      } catch (e) {
+        $("status").textContent = "API接続に失敗。ローカル沼へ沈めます。";
+        localGenerate(mode);
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    $("sinkBtn").addEventListener("click", () => claudeGenerate("sink"));
+    $("shaveBtn").addEventListener("click", () => claudeGenerate("shave"));
+    $("escapeBtn").addEventListener("click", () => claudeGenerate("escape"));
+
+    setTimeout(() => localGenerate("sink"), 420);
+  </script>
+</body>
+</html>
