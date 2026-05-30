@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Sensory Transmuter — CloseBox /lab/</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Noto+Serif+JP:wght@300;400&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a08;
+    --film: #111009;
+    --grain: rgba(255,240,200,0.03);
+    --amber: #d4a832;
+    --amber-dim: #7a5c10;
+    --red: #c0392b;
+    --fog: rgba(212,168,50,0.06);
+    --text: #e8d89a;
+    --text-dim: #7a6a3a;
+    --white: #f0e8cc;
+    --border: rgba(212,168,50,0.15);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Courier Prime', monospace;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Film grain overlay */
+  body::before {
+    content:'';
+    position:fixed; inset:0; z-index:9999; pointer-events:none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
+    background-size: 128px 128px;
+    opacity: 0.6;
+    mix-blend-mode: overlay;
+  }
+
+  /* Film sprocket holes */
+  .sprockets {
+    position:fixed; top:0; bottom:0; width:28px; z-index:100; pointer-events:none;
+    display:flex; flex-direction:column; justify-content:space-around; align-items:center;
+    padding: 20px 0;
+    border-right: 2px solid rgba(212,168,50,0.08);
+  }
+  .sprockets.left { left:0; }
+  .sprockets.right { right:0; border-right:none; border-left:2px solid rgba(212,168,50,0.08); }
+  .sprocket-hole {
+    width:12px; height:16px;
+    border:1.5px solid rgba(212,168,50,0.2);
+    border-radius:2px;
+    background: rgba(0,0,0,0.8);
+  }
+
+  /* Header */
+  header {
+    padding: 24px 44px 16px;
+    border-bottom: 1px solid var(--border);
+    display:flex; align-items:baseline; gap:12px;
+  }
+  .lab-tag {
+    font-family:'Bebas Neue', sans-serif;
+    font-size:11px; letter-spacing:4px;
+    color: var(--amber-dim);
+  }
+  .app-title {
+    font-family:'Bebas Neue', sans-serif;
+    font-size:22px; letter-spacing:3px;
+    color: var(--amber);
+  }
+  .frame-counter {
+    margin-left:auto;
+    font-size:10px; letter-spacing:2px;
+    color: var(--amber-dim);
+  }
+
+  /* Main layout */
+  main {
+    padding: 20px 44px;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  /* Step indicator */
+  .steps {
+    display:flex; gap:0; margin-bottom:24px;
+  }
+  .step {
+    flex:1; padding:8px 4px; text-align:center;
+    font-size:9px; letter-spacing:3px; text-transform:uppercase;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    transition: all 0.3s;
+  }
+  .step.active {
+    color: var(--amber);
+    border-bottom: 1px solid var(--amber);
+  }
+  .step.done {
+    color: var(--amber-dim);
+    border-bottom: 1px solid var(--amber-dim);
+  }
+
+  /* Panels */
+  .panel {
+    display:none;
+    animation: fadeIn 0.4s ease;
+  }
+  .panel.visible { display:block; }
+  @keyframes fadeIn {
+    from { opacity:0; transform:translateY(8px); }
+    to { opacity:1; transform:translateY(0); }
+  }
+
+  /* Sound panel */
+  .sound-viz {
+    background: var(--film);
+    border: 1px solid var(--border);
+    border-radius:2px;
+    height:80px;
+    display:flex; align-items:center; justify-content:center; gap:3px;
+    padding: 16px;
+    margin-bottom:16px;
+    position:relative;
+    overflow:hidden;
+  }
+  .sound-viz::before {
+    content:'SOUND SENSOR';
+    position:absolute; top:6px; left:10px;
+    font-size:8px; letter-spacing:3px; color:var(--amber-dim);
+  }
+  .bar {
+    width:3px; background:var(--amber);
+    border-radius:2px;
+    transition: height 0.05s;
+    opacity:0.7;
+  }
+  .bar-idle { height:4px; }
+
+  .transcript-box {
+    background: rgba(212,168,50,0.04);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--amber-dim);
+    padding:10px 14px;
+    min-height:52px;
+    margin-bottom:16px;
+    font-size:12px; line-height:1.7;
+    color: var(--text-dim);
+    font-style:italic;
+  }
+  .transcript-box.has-text { color: var(--text); }
+
+  /* Record button */
+  .btn-record {
+    width:100%; padding:14px;
+    background:transparent;
+    border: 1px solid var(--amber);
+    color: var(--amber);
+    font-family:'Bebas Neue', sans-serif;
+    font-size:16px; letter-spacing:5px;
+    cursor:pointer;
+    transition: all 0.2s;
+    position:relative;
+    overflow:hidden;
+  }
+  .btn-record:hover { background: rgba(212,168,50,0.08); }
+  .btn-record.recording {
+    border-color: var(--red);
+    color: var(--red);
+    animation: pulse-border 1s infinite;
+  }
+  @keyframes pulse-border {
+    0%,100% { box-shadow: 0 0 0 0 rgba(192,57,43,0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(192,57,43,0); }
+  }
+  .btn-record .rec-dot {
+    display:inline-block; width:8px; height:8px;
+    background:var(--red); border-radius:50%;
+    margin-right:8px; vertical-align:middle;
+    animation: blink 1s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  .timer-display {
+    text-align:center; font-size:11px; letter-spacing:3px;
+    color:var(--red); margin-top:8px;
+    height:18px;
+  }
+
+  /* Camera panel */
+  .viewfinder {
+    background: #050503;
+    border: 1px solid var(--border);
+    border-radius:2px;
+    position:relative;
+    aspect-ratio: 4/3;
+    overflow:hidden;
+    margin-bottom:16px;
+  }
+  .viewfinder video, .viewfinder canvas#preview {
+    width:100%; height:100%; object-fit:cover;
+    display:block;
+  }
+  .viewfinder canvas#preview { display:none; }
+  .vf-overlay {
+    position:absolute; inset:0; pointer-events:none;
+  }
+  /* Corner brackets */
+  .vf-overlay::before, .vf-overlay::after {
+    content:''; position:absolute;
+    width:20px; height:20px;
+    border-color: var(--amber); border-style:solid;
+    opacity:0.6;
+  }
+  .vf-overlay::before { top:10px; left:10px; border-width:1px 0 0 1px; }
+  .vf-overlay::after { bottom:10px; right:10px; border-width:0 1px 1px 0; }
+  .vf-corner-tr {
+    position:absolute; top:10px; right:10px;
+    width:20px; height:20px;
+    border-top:1px solid var(--amber); border-right:1px solid var(--amber);
+    opacity:0.6;
+  }
+  .vf-corner-bl {
+    position:absolute; bottom:10px; left:10px;
+    width:20px; height:20px;
+    border-bottom:1px solid var(--amber); border-left:1px solid var(--amber);
+    opacity:0.6;
+  }
+  .vf-crosshair {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:12px; height:12px;
+    border:1px solid rgba(212,168,50,0.4);
+    border-radius:50%;
+  }
+  .vf-label {
+    position:absolute; top:8px; right:14px;
+    font-size:8px; letter-spacing:2px; color:var(--amber-dim);
+  }
+
+  .btn-capture {
+    width:100%; padding:14px;
+    background: var(--amber);
+    border:none;
+    color: var(--bg);
+    font-family:'Bebas Neue', sans-serif;
+    font-size:16px; letter-spacing:5px;
+    cursor:pointer;
+    transition: all 0.2s;
+  }
+  .btn-capture:hover { background: #e8bc3a; }
+  .btn-capture:disabled { background:var(--amber-dim); cursor:not-allowed; opacity:0.5; }
+
+  .btn-upload-alt {
+    width:100%; padding:10px;
+    background:transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family:'Courier Prime', monospace;
+    font-size:11px; letter-spacing:2px;
+    cursor:pointer; margin-top:8px;
+    transition: all 0.2s;
+  }
+  .btn-upload-alt:hover { border-color:var(--amber-dim); color:var(--text); }
+
+  /* Processing panel */
+  .processing-screen {
+    text-align:center; padding:40px 0;
+  }
+  .developing-label {
+    font-family:'Bebas Neue', sans-serif;
+    font-size:13px; letter-spacing:6px;
+    color:var(--amber-dim);
+    margin-bottom:24px;
+  }
+  .film-strip {
+    width:80px; height:4px;
+    background: linear-gradient(90deg, var(--amber-dim), var(--amber), var(--amber-dim));
+    background-size:200% 100%;
+    animation: scan 1.5s linear infinite;
+    margin:0 auto 24px;
+    border-radius:2px;
+  }
+  @keyframes scan {
+    0% { background-position:200% 0; }
+    100% { background-position:0% 0; }
+  }
+  .floating-words {
+    min-height:120px;
+    position:relative;
+    overflow:hidden;
+  }
+  .float-word {
+    position:absolute;
+    font-size:11px; letter-spacing:2px;
+    color: var(--amber-dim);
+    opacity:0;
+    animation: floatUp 3s ease-in-out forwards;
+    white-space:nowrap;
+  }
+  @keyframes floatUp {
+    0% { opacity:0; transform:translateY(20px); }
+    20% { opacity:0.7; }
+    80% { opacity:0.5; }
+    100% { opacity:0; transform:translateY(-40px); }
+  }
+  .processing-status {
+    font-size:10px; letter-spacing:3px; color:var(--text-dim);
+    margin-top:16px;
+  }
+
+  /* Result panel */
+  .result-frame {
+    position:relative;
+    border: 1px solid var(--border);
+    border-radius:2px;
+    overflow:hidden;
+    background:#050503;
+    margin-bottom:20px;
+  }
+  .result-frame img {
+    width:100%; display:block;
+    filter: sepia(0.2) contrast(1.05);
+  }
+  /* Text overlay */
+  .caption-overlay {
+    position:absolute;
+    bottom:0; left:0; right:0;
+    background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.6) 60%, transparent 100%);
+    padding: 48px 20px 20px;
+  }
+  .caption-label {
+    font-size:8px; letter-spacing:4px; color:var(--amber-dim);
+    text-transform:uppercase; margin-bottom:8px;
+  }
+  .caption-text {
+    font-family:'Noto Serif JP', serif;
+    font-size:14px; line-height:1.8;
+    color: var(--white);
+    text-shadow: 0 1px 8px rgba(0,0,0,0.9);
+  }
+  .caption-text.en {
+    font-family:'Courier Prime', monospace;
+    font-size:12px; font-style:italic;
+    color: rgba(240,232,204,0.7);
+    margin-top:8px; line-height:1.6;
+  }
+
+  /* Film metadata strip */
+  .film-meta {
+    background:var(--film);
+    border-top:1px solid var(--border);
+    padding:8px 14px;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .film-meta span {
+    font-size:9px; letter-spacing:2px; color:var(--amber-dim);
+  }
+
+  /* Full interpretation */
+  .interpretation-box {
+    background: var(--film);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--amber);
+    padding:20px;
+    margin-bottom:16px;
+  }
+  .interp-section {
+    margin-bottom:16px;
+  }
+  .interp-section:last-child { margin-bottom:0; }
+  .interp-label {
+    font-size:8px; letter-spacing:4px; color:var(--amber-dim);
+    text-transform:uppercase; margin-bottom:8px;
+  }
+  .interp-text {
+    font-family:'Noto Serif JP', serif;
+    font-size:13px; line-height:1.9;
+    color:var(--text);
+  }
+  .interp-text.poem {
+    font-style:italic; color:var(--white);
+    font-size:14px; line-height:2;
+    border-left:1px solid var(--amber-dim);
+    padding-left:14px;
+  }
+
+  /* Action buttons */
+  .btn-row {
+    display:flex; gap:8px; margin-bottom:12px;
+  }
+  .btn-secondary {
+    flex:1; padding:12px 8px;
+    background:transparent;
+    border:1px solid var(--border);
+    color:var(--text-dim);
+    font-family:'Courier Prime', monospace;
+    font-size:11px; letter-spacing:2px;
+    cursor:pointer; transition:all 0.2s;
+  }
+  .btn-secondary:hover { border-color:var(--amber-dim); color:var(--text); }
+  .btn-primary-outline {
+    flex:1; padding:12px 8px;
+    background:transparent;
+    border:1px solid var(--amber);
+    color:var(--amber);
+    font-family:'Bebas Neue', sans-serif;
+    font-size:14px; letter-spacing:4px;
+    cursor:pointer; transition:all 0.2s;
+  }
+  .btn-primary-outline:hover { background:rgba(212,168,50,0.08); }
+
+  /* API Key input */
+  .api-setup {
+    background:var(--film);
+    border:1px solid var(--border);
+    padding:20px;
+    margin-bottom:20px;
+  }
+  .api-setup label {
+    display:block; font-size:9px; letter-spacing:3px;
+    color:var(--amber-dim); margin-bottom:8px;
+  }
+  .api-setup input {
+    width:100%; padding:10px 12px;
+    background:rgba(0,0,0,0.4);
+    border:1px solid var(--border);
+    color:var(--text);
+    font-family:'Courier Prime', monospace;
+    font-size:12px;
+    outline:none;
+    transition:border-color 0.2s;
+  }
+  .api-setup input:focus { border-color:var(--amber-dim); }
+  .api-notice {
+    font-size:10px; color:var(--text-dim); margin-top:8px;
+    line-height:1.6;
+  }
+
+  /* Sound info tag */
+  .sound-tag {
+    display:inline-block;
+    background:rgba(212,168,50,0.1);
+    border:1px solid var(--amber-dim);
+    color:var(--amber-dim);
+    font-size:10px; letter-spacing:2px;
+    padding:3px 8px; border-radius:2px;
+    margin-right:4px; margin-bottom:4px;
+  }
+
+  /* Instruction text */
+  .instruction {
+    font-size:11px; line-height:1.8; color:var(--text-dim);
+    margin-bottom:16px; letter-spacing:0.5px;
+  }
+
+  .divider {
+    border:none; border-top:1px solid var(--border);
+    margin:16px 0;
+  }
+
+  /* Error */
+  .error-msg {
+    background:rgba(192,57,43,0.1);
+    border:1px solid rgba(192,57,43,0.3);
+    border-left:2px solid var(--red);
+    padding:10px 14px;
+    font-size:11px; color:#e74c3c;
+    margin-bottom:12px; display:none;
+  }
+
+  /* Skip sound link */
+  .skip-link {
+    font-size:10px; color:var(--text-dim);
+    cursor:pointer; text-decoration:underline;
+    text-align:center; display:block; margin-top:8px;
+  }
+  .skip-link:hover { color:var(--text); }
+
+  /* Photo choice */
+  .photo-preview-thumb {
+    width:60px; height:45px; object-fit:cover;
+    border:1px solid var(--border);
+    vertical-align:middle; margin-right:8px;
+    filter:sepia(0.3);
+  }
+  .photo-ready-bar {
+    display:flex; align-items:center;
+    background:rgba(212,168,50,0.06);
+    border:1px solid var(--border);
+    padding:10px 12px; margin-bottom:12px;
+    font-size:11px; color:var(--text-dim);
+  }
+
+  /* Hidden */
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+
+<!-- Film sprockets -->
+<div class="sprockets left">
+  <div class="sprocket-hole"></div><div class="sprocket-hole"></div>
+  <div class="sprocket-hole"></div><div class="sprocket-hole"></div>
+  <div class="sprocket-hole"></div><div class="sprocket-hole"></div>
+  <div class="sprocket-hole"></div><div class="sprocket-hole"></div>
+  <div class="sprocket-hole"></div><div class="sprocket-hole"></div>
+</div>
+<div class="sprockets right">
+  <div class="sprocket-hole"></div><div class="sprocket-hole"></div>
+  <div class="sprocket-hole"></div><div class="sprocket-hole"></div>
+  <div class="sprocket-hole"></div><div class="sprocket-hole"></div>
+  <div class="sprocket-hole"></div><div class="sprocket-hole"></div>
+  <div class="sprocket-hole"></div><div class="sprocket-hole"></div>
+</div>
+
+<header>
+  <span class="lab-tag">CloseBox /lab/</span>
+  <span style="color:var(--amber-dim)">·</span>
+  <span class="app-title">Sensory Transmuter</span>
+  <span class="frame-counter" id="frameCounter">FRAME 000</span>
+</header>
+
+<main>
+
+  <!-- API Key Setup -->
+  <div class="api-setup" id="apiSetup">
+    <label>ANTHROPIC API KEY</label>
+    <input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off">
+    <p class="api-notice">キーはブラウザのメモリにのみ保持されます。サーバーには送信されません。</p>
+  </div>
+
+  <!-- Step indicators -->
+  <div class="steps">
+    <div class="step active" id="step1">01 · SOUND</div>
+    <div class="step" id="step2">02 · PHOTO</div>
+    <div class="step" id="step3">03 · TRANSMUTE</div>
+  </div>
+
+  <!-- Error message -->
+  <div class="error-msg" id="errorMsg"></div>
+
+  <!-- PANEL 1: SOUND -->
+  <div class="panel visible" id="panelSound">
+    <p class="instruction">周囲の音（環境音、BGM、沈黙）を10秒ほど録音します。<br>その音のテクスチャが、写真の解釈に混ざり込みます。</p>
+
+    <div class="sound-viz" id="soundViz">
+      <div id="bars"></div>
+    </div>
+
+    <div class="transcript-box" id="transcriptBox">
+      <span style="color:var(--amber-dim); font-size:10px; letter-spacing:2px;">AWAITING SIGNAL...</span>
+    </div>
+
+    <button class="btn-record" id="btnRecord" onclick="toggleRecord()">
+      ● &nbsp;REC — 録音開始
+    </button>
+    <div class="timer-display" id="timerDisplay"></div>
+    <div id="soundTags" style="margin-top:12px;"></div>
+
+    <a class="skip-link" onclick="skipSound()">音なしでスキップ →</a>
+  </div>
+
+  <!-- PANEL 2: CAMERA -->
+  <div class="panel" id="panelCamera">
+    <div class="photo-ready-bar" id="soundReadyBar" style="display:none;">
+      <span style="color:var(--amber); margin-right:8px;">◎</span>
+      <span id="soundReadySummary">Sound loaded</span>
+    </div>
+
+    <p class="instruction">写真を撮影します。ファインダーを覗くのではなく、<br>「音が聞こえる空間」の一点を切り取る感覚で。</p>
+
+    <div class="viewfinder" id="viewfinder">
+      <video id="cameraFeed" autoplay playsinline muted></video>
+      <canvas id="preview"></canvas>
+      <div class="vf-overlay">
+        <div class="vf-corner-tr"></div>
+        <div class="vf-corner-bl"></div>
+        <div class="vf-crosshair"></div>
+        <div class="vf-label" id="vfLabel">LIVE</div>
+      </div>
+    </div>
+
+    <button class="btn-capture" id="btnCapture" onclick="capturePhoto()" disabled>
+      ◎ &nbsp;CAPTURE
+    </button>
+    <button class="btn-upload-alt" onclick="document.getElementById('fileUpload').click()">
+      ↑ &nbsp;またはファイルから選択
+    </button>
+    <input type="file" id="fileUpload" accept="image/*" style="display:none" onchange="handleFileUpload(event)">
+  </div>
+
+  <!-- PANEL 3: PROCESSING -->
+  <div class="panel" id="panelProcessing">
+    <div class="processing-screen">
+      <div class="developing-label">DEVELOPING</div>
+      <div class="film-strip"></div>
+      <div class="floating-words" id="floatingWords"></div>
+      <div class="processing-status" id="processingStatus">ANALYZING VISUAL FIELD...</div>
+    </div>
+  </div>
+
+  <!-- PANEL 4: RESULT -->
+  <div class="panel" id="panelResult">
+    <div class="result-frame" id="resultFrame">
+      <img id="resultImage" src="" alt="captured">
+      <div class="caption-overlay">
+        <div class="caption-label">TRANSMUTED SIGNAL</div>
+        <div class="caption-text" id="captionJa"></div>
+        <div class="caption-text en" id="captionEn"></div>
+      </div>
+    </div>
+    <div class="film-meta">
+      <span id="metaTimestamp">—</span>
+      <span id="metaFrame">FRAME —</span>
+      <span>SENSORY TRANSMUTER</span>
+    </div>
+
+    <div class="interpretation-box" id="interpretationBox">
+      <div class="interp-section">
+        <div class="interp-label">INTERPRETATION — この場の解釈</div>
+        <div class="interp-text" id="interpMain"></div>
+      </div>
+      <hr class="divider">
+      <div class="interp-section">
+        <div class="interp-label">SIGNAL POEM — 詩</div>
+        <div class="interp-text poem" id="interpPoem"></div>
+      </div>
+      <hr class="divider">
+      <div class="interp-section">
+        <div class="interp-label">LATENT QUESTIONS — 問いの地図</div>
+        <div class="interp-text" id="interpQuestions"></div>
+      </div>
+    </div>
+
+    <button class="btn-capture" style="margin-bottom:8px;" onclick="saveImage()">↓ &nbsp;画像として保存</button>
+
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="resetToSound()">↺ &nbsp;再録音</button>
+      <button class="btn-secondary" onclick="resetToCamera()">⊡ &nbsp;撮り直す</button>
+      <button class="btn-primary-outline" onclick="transmute()">⟳ &nbsp;再変調</button>
+    </div>
+    <button class="btn-secondary" style="width:100%;" onclick="resetAll()">NEW FRAME — 最初から</button>
+  </div>
+
+</main>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+const state = {
+  apiKey: '',
+  soundTranscript: '',
+  soundKeywords: [],
+  photoDataUrl: null,
+  frameCount: 0,
+};
+
+let mediaRecorder = null;
+let audioChunks = [];
+let recordingTimer = null;
+let recordSeconds = 0;
+let analyser = null, animFrame = null;
+let stream = null;
+let recognition = null;
+let isRecording = false;
+
+// ============================================================
+// INIT
+// ============================================================
+document.getElementById('apiKey').addEventListener('input', e => {
+  state.apiKey = e.target.value.trim();
+});
+
+// Generate bars for sound viz
+const barsContainer = document.getElementById('bars');
+barsContainer.style.display = 'flex';
+barsContainer.style.alignItems = 'center';
+barsContainer.style.gap = '3px';
+barsContainer.style.height = '40px';
+for (let i = 0; i < 32; i++) {
+  const b = document.createElement('div');
+  b.className = 'bar bar-idle';
+  b.style.height = `${4 + Math.random() * 6}px`;
+  barsContainer.appendChild(b);
+}
+
+// ============================================================
+// SOUND RECORDING
+// ============================================================
+async function toggleRecord() {
+  if (isRecording) {
+    stopRecording();
+  } else {
+    await startRecording();
+  }
+}
+
+async function startRecording() {
+  try {
+    const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    isRecording = true;
+
+    const btn = document.getElementById('btnRecord');
+    btn.classList.add('recording');
+    btn.innerHTML = '<span class="rec-dot"></span> &nbsp;REC — 録音中 (タップで停止)';
+
+    // Web Speech API
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SR();
+      recognition.lang = 'ja-JP';
+      recognition.interimResults = true;
+      recognition.continuous = true;
+      recognition.onresult = (e) => {
+        let interim = '', final = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const t = e.results[i][0].transcript;
+          if (e.results[i].isFinal) final += t;
+          else interim += t;
+        }
+        state.soundTranscript = (state.soundTranscript + ' ' + final).trim();
+        const box = document.getElementById('transcriptBox');
+        box.classList.add('has-text');
+        box.textContent = state.soundTranscript || interim || '…';
+      };
+      recognition.onerror = () => {};
+      recognition.start();
+    }
+
+    // Visualizer
+    const ctx = new AudioContext();
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 64;
+    ctx.createMediaStreamSource(micStream).connect(analyser);
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    const bars = document.querySelectorAll('.bar');
+
+    function drawBars() {
+      if (!isRecording) return;
+      analyser.getByteFrequencyData(dataArray);
+      bars.forEach((b, i) => {
+        const v = (dataArray[i] || 0) / 255;
+        b.style.height = `${4 + v * 44}px`;
+        b.style.opacity = 0.4 + v * 0.6;
+      });
+      animFrame = requestAnimationFrame(drawBars);
+    }
+    drawBars();
+
+    // Timer
+    recordSeconds = 0;
+    recordingTimer = setInterval(() => {
+      recordSeconds++;
+      const t = document.getElementById('timerDisplay');
+      t.textContent = `${String(Math.floor(recordSeconds/60)).padStart(2,'0')}:${String(recordSeconds%60).padStart(2,'0')}`;
+      if (recordSeconds >= 15) stopRecording();
+    }, 1000);
+
+    // Store stream ref
+    stream = micStream;
+
+    // MediaRecorder (for keyword detection via silence)
+    mediaRecorder = new MediaRecorder(micStream);
+    audioChunks = [];
+    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+    mediaRecorder.start();
+
+  } catch(err) {
+    showError('マイクへのアクセスが拒否されました。ブラウザの設定を確認してください。');
+  }
+}
+
+function stopRecording() {
+  isRecording = false;
+  cancelAnimationFrame(animFrame);
+  clearInterval(recordingTimer);
+
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+  if (recognition) { try { recognition.stop(); } catch(e){} }
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+
+  const btn = document.getElementById('btnRecord');
+  btn.classList.remove('recording');
+
+  // Reset bars to idle
+  document.querySelectorAll('.bar').forEach(b => {
+    b.style.height = `${4 + Math.random() * 8}px`;
+    b.style.opacity = '0.4';
+  });
+
+  // Generate keywords from transcript
+  if (state.soundTranscript) {
+    generateSoundKeywords(state.soundTranscript);
+    btn.innerHTML = '✓ &nbsp;SOUND CAPTURED — 再録音';
+  } else {
+    // No speech detected — treat as ambient
+    state.soundTranscript = '[ambient environmental sound — no discernible speech]';
+    document.getElementById('transcriptBox').textContent = '（環境音のみ — セリフなし）';
+    document.getElementById('transcriptBox').classList.add('has-text');
+    btn.innerHTML = '✓ &nbsp;AMBIENT CAPTURED — 再録音';
+  }
+
+  setTimeout(() => goToCamera(), 800);
+}
+
+function generateSoundKeywords(text) {
+  // Simple heuristic keyword extraction
+  const words = text.replace(/[。、！？]/g, ' ').split(/\s+/).filter(w => w.length > 1);
+  const freq = {};
+  words.forEach(w => freq[w] = (freq[w] || 0) + 1);
+  state.soundKeywords = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,6).map(e=>e[0]);
+
+  const container = document.getElementById('soundTags');
+  state.soundKeywords.forEach(kw => {
+    const tag = document.createElement('span');
+    tag.className = 'sound-tag';
+    tag.textContent = kw;
+    container.appendChild(tag);
+  });
+}
+
+function skipSound() {
+  state.soundTranscript = '[no sound recorded — visual only]';
+  goToCamera();
+}
+
+// ============================================================
+// CAMERA
+// ============================================================
+async function goToCamera() {
+  setPanel('panelCamera');
+  setStep(2);
+
+  if (state.soundTranscript && state.soundTranscript !== '[no sound recorded — visual only]') {
+    const bar = document.getElementById('soundReadyBar');
+    bar.style.display = 'flex';
+    const summary = state.soundTranscript.length > 50
+      ? state.soundTranscript.substring(0, 50) + '…'
+      : state.soundTranscript;
+    document.getElementById('soundReadySummary').textContent = summary;
+  }
+
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 960 } }
+    });
+    const video = document.getElementById('cameraFeed');
+    video.srcObject = stream;
+    video.onloadedmetadata = () => {
+      document.getElementById('btnCapture').disabled = false;
+      document.getElementById('vfLabel').textContent = 'LIVE';
+    };
+  } catch(err) {
+    document.getElementById('btnCapture').disabled = true;
+    document.getElementById('vfLabel').textContent = 'NO CAM';
+  }
+}
+
+function capturePhoto() {
+  const video = document.getElementById('cameraFeed');
+  const canvas = document.getElementById('preview');
+  const ctx = canvas.getContext('2d');
+
+  canvas.width = video.videoWidth || 1280;
+  canvas.height = video.videoHeight || 960;
+  ctx.drawImage(video, 0, 0);
+
+  // Flash effect
+  const vf = document.getElementById('viewfinder');
+  vf.style.filter = 'brightness(3)';
+  setTimeout(() => { vf.style.filter = ''; }, 100);
+
+  state.photoDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+  // Switch to preview mode
+  video.style.display = 'none';
+  canvas.style.display = 'block';
+  document.getElementById('vfLabel').textContent = 'CAPTURED';
+
+  // Stop camera
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+
+  state.frameCount++;
+  document.getElementById('frameCounter').textContent = `FRAME ${String(state.frameCount).padStart(3,'0')}`;
+
+  setTimeout(() => transmute(), 500);
+}
+
+function handleFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    state.photoDataUrl = e.target.result;
+    state.frameCount++;
+    document.getElementById('frameCounter').textContent = `FRAME ${String(state.frameCount).padStart(3,'0')}`;
+
+    // Show thumb in viewfinder
+    const preview = document.getElementById('preview');
+    const img = new Image();
+    img.onload = () => {
+      const ctx = preview.getContext('2d');
+      preview.width = img.width; preview.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      document.getElementById('cameraFeed').style.display = 'none';
+      preview.style.display = 'block';
+    };
+    img.src = state.photoDataUrl;
+
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    setTimeout(() => transmute(), 800);
+  };
+  reader.readAsDataURL(file);
+}
+
+// ============================================================
+// AI TRANSMUTATION
+// ============================================================
+async function transmute() {
+  if (!state.photoDataUrl) { showError('写真が必要です'); return; }
+
+  const apiKey = state.apiKey || document.getElementById('apiKey').value.trim();
+  if (!apiKey) { showError('Anthropic APIキーを入力してください'); return; }
+  state.apiKey = apiKey;
+
+  setPanel('panelProcessing');
+  setStep(3);
+
+  // Animate floating words
+  const floatingContainer = document.getElementById('floatingWords');
+  const ambientWords = [
+    'translating signal', '変調中', 'reading light',
+    'parsing texture', '音のレイヤー', 'decoding noise',
+    'latent space', '日常の裏側', 'exposing frame',
+    'developing', '現像中', 'signal → image',
+    'sensory fusion', '感覚の融合', 'another world',
+  ];
+
+  let wordInterval = setInterval(() => {
+    const word = ambientWords[Math.floor(Math.random() * ambientWords.length)];
+    const el = document.createElement('div');
+    el.className = 'float-word';
+    el.textContent = word;
+    el.style.left = `${10 + Math.random() * 60}%`;
+    el.style.top = `${60 + Math.random() * 30}%`;
+    el.style.animationDelay = `${Math.random() * 0.5}s`;
+    floatingContainer.appendChild(el);
+    setTimeout(() => el.remove(), 3500);
+  }, 600);
+
+  const statusEl = document.getElementById('processingStatus');
+
+  try {
+    statusEl.textContent = 'READING VISUAL FIELD...';
+
+    // Extract base64 from data URL
+    const base64 = state.photoDataUrl.split(',')[1];
+    const mediaType = state.photoDataUrl.split(';')[0].split(':')[1];
+
+    statusEl.textContent = 'FUSING SONIC + VISUAL LAYERS...';
+
+    const soundContext = state.soundTranscript
+      ? `Sound/acoustic context captured: "${state.soundTranscript}"`
+      : 'No sound context — visual-only transmutation.';
+
+    const prompt = `You are a poetic AI that transforms everyday sensory experiences into layered, literary interpretations. You receive an image and an acoustic/sound context, and you "transmute" them — revealing the hidden world beneath the ordinary.
+
+${soundContext}
+
+Now, look at this image and fuse the visual with the acoustic context. Return ONLY a JSON object with this exact structure (no markdown, no explanation):
+
+{
+  "caption_ja": "短い日本語のキャプション（15文字以内）— 写真の下に表示される映画字幕のような一文",
+  "caption_en": "Short English caption (under 12 words) — the same feeling in English",
+  "interpretation_ja": "この音が響く空間で、この風景を見た時の解釈。150〜200字の日本語散文。日常の1%のノイズ（隠れたコンテキスト）が立ち上がる瞬間を描写する。",
+  "poem": "この場の詩。4〜6行。音と視覚が溶け合う瞬間。日本語か英語か混在でも可。",
+  "questions": "この場が孕む問いを3つ、箇条書きで。「——はなぜか」「——はどこへ向かうのか」という形で。"
+}`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': state.apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: mediaType, data: base64 }
+            },
+            { type: 'text', text: prompt }
+          ]
+        }]
+      })
+    });
+
+    clearInterval(wordInterval);
+
+    if (!response.ok) {
+      const errData = await response.json();
+      throw new Error(errData.error?.message || `HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    const rawText = data.content.map(b => b.text || '').join('');
+
+    // Parse JSON
+    let parsed;
+    try {
+      const clean = rawText.replace(/```json|```/g, '').trim();
+      parsed = JSON.parse(clean);
+    } catch(e) {
+      throw new Error('AIの応答を解析できませんでした。もう一度試してください。');
+    }
+
+    showResult(parsed);
+
+  } catch(err) {
+    clearInterval(wordInterval);
+    setPanel('panelCamera');
+    setStep(2);
+    showError(`エラー: ${err.message}`);
+  }
+}
+
+function showResult(parsed) {
+  // Set image
+  document.getElementById('resultImage').src = state.photoDataUrl;
+
+  // Caption overlay
+  document.getElementById('captionJa').textContent = parsed.caption_ja || '';
+  document.getElementById('captionEn').textContent = parsed.caption_en || '';
+
+  // Interpretation box
+  document.getElementById('interpMain').textContent = parsed.interpretation_ja || '';
+  document.getElementById('interpPoem').textContent = parsed.poem || '';
+  document.getElementById('interpQuestions').textContent = parsed.questions || '';
+
+  // Meta
+  const now = new Date();
+  document.getElementById('metaTimestamp').textContent =
+    `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  document.getElementById('metaFrame').textContent = `FRAME ${String(state.frameCount).padStart(3,'0')}`;
+
+  setPanel('panelResult');
+}
+
+// ============================================================
+// NAV HELPERS
+// ============================================================
+function setPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('visible'));
+  document.getElementById(id).classList.add('visible');
+}
+
+function setStep(n) {
+  document.querySelectorAll('.step').forEach((s, i) => {
+    s.classList.remove('active','done');
+    if (i + 1 < n) s.classList.add('done');
+    else if (i + 1 === n) s.classList.add('active');
+  });
+}
+
+function resetToSound() {
+  state.soundTranscript = '';
+  state.soundKeywords = [];
+  document.getElementById('transcriptBox').textContent = '';
+  document.getElementById('transcriptBox').classList.remove('has-text');
+  document.getElementById('soundTags').innerHTML = '';
+  document.getElementById('timerDisplay').textContent = '';
+  document.getElementById('btnRecord').innerHTML = '● &nbsp;REC — 録音開始';
+  document.getElementById('btnRecord').classList.remove('recording');
+  document.querySelectorAll('.bar').forEach(b => { b.style.height = `${4 + Math.random() * 6}px`; });
+  setPanel('panelSound');
+  setStep(1);
+}
+
+function resetToCamera() {
+  state.photoDataUrl = null;
+  document.getElementById('cameraFeed').style.display = 'block';
+  document.getElementById('preview').style.display = 'none';
+  goToCamera();
+}
+
+// ============================================================
+// SAVE IMAGE — 写真＋キャプションをCanvas合成して保存
+// ============================================================
+function saveImage() {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    const W = img.naturalWidth;
+    const H = img.naturalHeight;
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    // 写真を描画
+    ctx.drawImage(img, 0, 0, W, H);
+
+    // グラデーションオーバーレイ（下から）
+    const grad = ctx.createLinearGradient(0, H * 0.45, 0, H);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(0.5, 'rgba(0,0,0,0.65)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.92)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    // フォントサイズをW基準でスケール
+    const baseSize = Math.round(W * 0.048);
+    const smallSize = Math.round(W * 0.030);
+    const labelSize = Math.round(W * 0.020);
+    const pad = Math.round(W * 0.06);
+    const bottomPad = Math.round(H * 0.05);
+
+    // TRANSMUTED SIGNAL ラベル
+    ctx.fillStyle = '#7a5c10';
+    ctx.font = `${labelSize}px "Courier New", monospace`;
+    ctx.letterSpacing = '4px';
+    ctx.fillText('TRANSMUTED SIGNAL', pad, H - bottomPad - baseSize * 2.8 - smallSize * 1.6);
+
+    // 日本語キャプション
+    const captionJa = document.getElementById('captionJa').textContent;
+    ctx.fillStyle = '#f0e8cc';
+    ctx.font = `${baseSize}px serif`;
+    ctx.shadowColor = 'rgba(0,0,0,0.9)';
+    ctx.shadowBlur = 12;
+    ctx.fillText(captionJa, pad, H - bottomPad - smallSize * 1.6);
+
+    // 英語キャプション
+    const captionEn = document.getElementById('captionEn').textContent;
+    ctx.fillStyle = 'rgba(240,232,204,0.65)';
+    ctx.font = `italic ${smallSize}px "Courier New", monospace`;
+    ctx.shadowBlur = 8;
+    ctx.fillText(captionEn, pad, H - bottomPad);
+
+    // タイムスタンプ（右下）
+    const ts = document.getElementById('metaTimestamp').textContent;
+    ctx.fillStyle = '#5a4a20';
+    ctx.font = `${labelSize}px "Courier New", monospace`;
+    ctx.shadowBlur = 0;
+    ctx.textAlign = 'right';
+    ctx.fillText(ts, W - pad, H - Math.round(H * 0.02));
+
+    // ダウンロード
+    const link = document.createElement('a');
+    link.download = `sensory-transmuter-${Date.now()}.jpg`;
+    link.href = canvas.toDataURL('image/jpeg', 0.92);
+    link.click();
+  };
+  img.src = state.photoDataUrl;
+}
+
+function resetAll() {
+  state.soundTranscript = '';
+  state.soundKeywords = [];
+  state.photoDataUrl = null;
+  document.getElementById('soundTags').innerHTML = '';
+  document.getElementById('transcriptBox').classList.remove('has-text');
+  document.getElementById('transcriptBox').innerHTML = '<span style="color:var(--amber-dim); font-size:10px; letter-spacing:2px;">AWAITING SIGNAL...</span>';
+  document.getElementById('timerDisplay').textContent = '';
+  document.getElementById('btnRecord').innerHTML = '● &nbsp;REC — 録音開始';
+  document.querySelectorAll('.bar').forEach(b => { b.style.height = `${4 + Math.random() * 6}px`; });
+  setPanel('panelSound');
+  setStep(1);
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 5000);
+}
+
+// Animate idle bars
+setInterval(() => {
+  if (!isRecording) {
+    document.querySelectorAll('.bar').forEach(b => {
+      b.style.height = `${2 + Math.random() * 5}px`;
+    });
+  }
+}, 800);
+</script>
+</body>
+</html>
