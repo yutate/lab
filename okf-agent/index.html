@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OKF Agent Configurator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F7F4EC;--paper-line:#D8D2C4;--ink:#232220;--ink-soft:#6B665C;
+  --okf:#2F6E62;--okf-bg:#E7F0EC;--okf-dark:#1E4D45;--card:#FFFFFF;--danger:#B5582C;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{background:var(--paper);color:var(--ink);font-family:'IBM Plex Sans',-apple-system,sans-serif;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;min-height:100vh;}
+header{padding:14px 22px;border-bottom:1px solid var(--paper-line);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.header-left .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.2em;color:var(--ink-soft);text-transform:uppercase;margin-bottom:3px;}
+h1{font-size:17px;font-weight:600;letter-spacing:-0.02em;}
+.header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.btn{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.07em;text-transform:uppercase;border:1px solid var(--ink);background:var(--ink);color:var(--paper);padding:7px 13px;border-radius:5px;cursor:pointer;transition:opacity .12s,transform .08s;white-space:nowrap;}
+.btn:hover{opacity:.82;}.btn:active{transform:translateY(1px);}
+.btn.ghost{background:transparent;color:var(--ink);}
+.btn.okf{background:var(--okf);border-color:var(--okf);}
+.btn.okf:hover{background:var(--okf-dark);border-color:var(--okf-dark);}
+.btn.sm{padding:5px 9px;font-size:10px;}
+.btn.danger-outline{background:transparent;color:var(--danger);border-color:var(--danger);}
+
+/* layout */
+.layout{display:grid;grid-template-columns:1fr 1fr;flex:1;overflow:hidden;}
+@media(max-width:820px){.layout{grid-template-columns:1fr;overflow:visible;}}
+.form-col{overflow-y:auto;border-right:1px solid var(--paper-line);padding:16px 18px 48px;}
+.section{margin-bottom:22px;}
+.section-head{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink-soft);padding-bottom:7px;border-bottom:1px solid var(--paper-line);margin-bottom:11px;display:flex;align-items:center;gap:6px;}
+.section-head .badge{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:3px;border:1px solid var(--paper-line);font-size:9px;color:var(--ink-soft);}
+.field{margin-bottom:10px;}
+label{display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:4px;}
+input[type=text],select,textarea{width:100%;font-family:'IBM Plex Sans',-apple-system,sans-serif;font-size:13px;color:var(--ink);background:var(--card);border:1px solid var(--paper-line);border-radius:5px;padding:7px 10px;transition:border-color .12s,box-shadow .12s;appearance:none;}
+input[type=text]:focus,select:focus,textarea:focus{outline:none;border-color:var(--okf);box-shadow:0 0 0 2px var(--okf-bg);}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B665C' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;cursor:pointer;}
+textarea{resize:vertical;min-height:74px;line-height:1.6;}
+textarea.mono{font-family:'IBM Plex Mono',monospace;font-size:12px;}
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media(max-width:480px){.field-grid{grid-template-columns:1fr;}}
+.field-footer{display:flex;justify-content:flex-end;margin-top:2px;}
+.char-count{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--paper-line);}
+
+/* rules */
+.rule-col-labels{display:grid;grid-template-columns:1fr 1fr 28px;gap:6px;margin-bottom:3px;}
+.rule-col-label{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-soft);}
+.rule-list{display:flex;flex-direction:column;gap:6px;margin-bottom:7px;}
+.rule-row{display:grid;grid-template-columns:1fr 1fr 28px;gap:6px;align-items:start;}
+.rule-row input{font-size:12px;}
+.rule-del{display:flex;align-items:center;justify-content:center;width:28px;height:32px;border:1px solid var(--paper-line);background:transparent;border-radius:5px;cursor:pointer;color:var(--ink-soft);font-size:14px;font-family:'IBM Plex Mono',monospace;transition:color .1s,border-color .1s;padding:0;}
+.rule-del:hover{color:var(--danger);border-color:var(--danger);}
+
+/* preview */
+.preview-col{display:flex;flex-direction:column;overflow:hidden;background:var(--card);}
+.preview-topbar{padding:9px 13px;border-bottom:1px solid var(--paper-line);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:10px;}
+.preview-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--okf);display:flex;align-items:center;gap:6px;}
+.preview-label::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--okf);animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.preview-stats{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-soft);}
+.preview-body{flex:1;overflow:auto;padding:13px;}
+#okfOutput{font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.7;color:var(--ink);white-space:pre-wrap;word-break:break-word;margin:0;padding:0;background:transparent;border:none;width:100%;height:100%;resize:none;outline:none;cursor:text;}
+.form-col::-webkit-scrollbar,.preview-body::-webkit-scrollbar{width:4px;}
+.form-col::-webkit-scrollbar-thumb,.preview-body::-webkit-scrollbar-thumb{background:var(--paper-line);border-radius:4px;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(35,34,32,.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .16s;}
+.modal-overlay.open{opacity:1;pointer-events:auto;}
+.modal{background:var(--paper);border:1px solid var(--paper-line);border-radius:10px;width:100%;max-width:620px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 40px rgba(35,34,32,.18);transform:translateY(10px);transition:transform .16s;}
+.modal-overlay.open .modal{transform:translateY(0);}
+.modal-head{padding:14px 16px 12px;border-bottom:1px solid var(--paper-line);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.modal-title{font-size:14px;font-weight:600;letter-spacing:-.01em;}
+.modal-close{font-family:'IBM Plex Mono',monospace;font-size:17px;background:none;border:none;color:var(--ink-soft);cursor:pointer;padding:2px 6px;line-height:1;border-radius:4px;transition:color .1s;}
+.modal-close:hover{color:var(--ink);}
+.modal-body{overflow-y:auto;padding:14px 16px 18px;flex:1;}
+.modal-body::-webkit-scrollbar{width:4px;}
+.modal-body::-webkit-scrollbar-thumb{background:var(--paper-line);border-radius:4px;}
+.tpl-group-label{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:7px;margin-top:2px;}
+.tpl-list{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
+.tpl-card{background:var(--card);border:1px solid var(--paper-line);border-radius:7px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;transition:border-color .12s;}
+.tpl-card:hover{border-color:var(--okf);}
+.tpl-card-info{flex:1;min-width:0;}
+.tpl-card-name{font-size:13px;font-weight:500;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tpl-card-meta{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tpl-card-actions{display:flex;gap:5px;flex-shrink:0;}
+.tpl-empty{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);padding:10px 0;text-align:center;}
+.modal-save-row{border-top:1px solid var(--paper-line);padding-top:12px;display:flex;gap:8px;align-items:center;}
+.modal-save-row input{flex:1;}
+
+/* toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:8px 18px;border-radius:20px;letter-spacing:.07em;opacity:0;pointer-events:none;transition:opacity .18s;z-index:300;white-space:nowrap;}
+.toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="eyebrow">OKF Agent Configurator</div>
+    <h1>AIエージェント設定ファイル生成ツール</h1>
+  </div>
+  <div class="header-right">
+    <button class="btn ghost sm" id="clearBtn">クリア</button>
+    <button class="btn ghost" id="tplBtn">📂 テンプレート</button>
+    <button class="btn ghost" id="downloadBtn">Download .md</button>
+    <button class="btn okf" id="copyBtn">Copy OKF</button>
+  </div>
+</header>
+
+<!-- TEMPLATE MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title">テンプレート</span>
+      <button class="modal-close" id="modalClose">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="tpl-group-label">ビルトイン</div>
+      <div class="tpl-list" id="builtinList"></div>
+      <div class="tpl-group-label">保存済み</div>
+      <div class="tpl-list" id="savedList"></div>
+      <div class="modal-save-row">
+        <input type="text" id="saveName" placeholder="現在の内容をテンプレートとして保存…">
+        <button class="btn okf sm" id="saveBtn">保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="form-col">
+    <div class="section">
+      <div class="section-head"><span class="badge">1</span> Metadata — YAMLフロントマター</div>
+      <div class="field-grid">
+        <div class="field">
+          <label for="fType">type</label>
+          <select id="fType">
+            <option value="SystemInstruction">SystemInstruction</option>
+            <option value="BrandIdentity">BrandIdentity</option>
+            <option value="AgentPersona">AgentPersona</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="fTargetLLM">target_llm</label>
+          <input type="text" id="fTargetLLM" placeholder="例: Claude, Gemini">
+        </div>
+      </div>
+      <div class="field">
+        <label for="fTitle">title</label>
+        <input type="text" id="fTitle" placeholder="例: シニアマーケティングディレクター「匠」">
+      </div>
+      <div class="field">
+        <label for="fDesc">description</label>
+        <input type="text" id="fDesc" placeholder="例: 一般論を完全に排除し、人間中心の深い洞察を提供するAI">
+      </div>
+      <div class="field">
+        <label for="fTags">tags <span style="font-size:9px;letter-spacing:0;text-transform:none;font-family:inherit;">(カンマ区切り)</span></label>
+        <input type="text" id="fTags" placeholder="例: marketing, strategy, japan">
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-head"><span class="badge">2</span> Core Context — ペルソナ・背景</div>
+      <div class="field">
+        <label for="fPersona">👤 ペルソナ・役割</label>
+        <textarea id="fPersona" rows="4" placeholder="何者として振る舞うか。役職・経験・専門領域・思考スタイルなど。"></textarea>
+        <div class="field-footer"><span class="char-count" id="ccPersona">0 chars</span></div>
+      </div>
+      <div class="field">
+        <label for="fContext">🎯 バックグラウンド・前提文脈</label>
+        <textarea id="fContext" rows="4" placeholder="市場環境・ターゲット・ビジネス課題・エコシステムを定義。"></textarea>
+        <div class="field-footer"><span class="char-count" id="ccContext">0 chars</span></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-head"><span class="badge">3</span> Behavioral Rules — Do / Don't</div>
+      <div class="rule-col-labels">
+        <div class="rule-col-label">✅ Do（推奨する行動）</div>
+        <div class="rule-col-label">🚫 Don't（厳禁行動）</div>
+        <div></div>
+      </div>
+      <div class="rule-list" id="ruleList"></div>
+      <button class="btn ghost sm" id="addRuleBtn" style="margin-top:2px;">+ ルールを追加</button>
+    </div>
+    <div class="section">
+      <div class="section-head"><span class="badge">4</span> Output Format & Few-Shot</div>
+      <div class="field">
+        <label for="fOutputFmt">📐 出力フォーマット・思考プロセス指定</label>
+        <textarea id="fOutputFmt" rows="4" placeholder="例: 「洞察→根拠→アクション提案」の3段構造で出力すること。"></textarea>
+        <div class="field-footer"><span class="char-count" id="ccOutput">0 chars</span></div>
+      </div>
+      <div class="field">
+        <label for="fFewShot">💬 Few-Shot（具体的な出力例）</label>
+        <textarea id="fFewShot" class="mono" rows="6" placeholder="User: ...\nAssistant: ..."></textarea>
+        <div class="field-footer"><span class="char-count" id="ccFewShot">0 chars</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="preview-col">
+    <div class="preview-topbar">
+      <div class="preview-label">Live OKF Preview</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="preview-stats" id="previewStats">0 chars · 0 lines</span>
+        <button class="btn okf sm" id="copyBtn2">Copy OKF</button>
+      </div>
+    </div>
+    <div class="preview-body">
+      <textarea id="okfOutput" readonly spellcheck="false"></textarea>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// =============================================
+// BUILT-IN TEMPLATES
+// =============================================
+const BUILTIN = [
+  {
+    name: 'マーケティングディレクター「匠」',
+    meta: 'SystemInstruction · marketing, strategy',
+    data: {
+      type:'SystemInstruction', title:'シニアマーケティングディレクター「匠」',
+      desc:'一般論を完全に排除し、人間中心の深い洞察を提供するAIマーケティング戦略家',
+      tags:'marketing, strategy, gen-z, japan, brand', llm:'Claude, Gemini 2.5',
+      persona:`あなたは15年以上のマーケティング実務経験を持つシニアディレクターです。
+大手消費財メーカーからスタートアップまで多様なブランドのグロースを担い、
+特にZ世代・ミレニアル世代の消費行動研究を専門とします。
+数値に裏付けられた戦略思考と、直感的なカルチャー読解力を兼ね備え、
+常に「なぜ人はそう感じるのか」という問いから思考を始めます。`,
+      context:`日本市場を主戦場としつつ、グローバルトレンドの翻訳者として機能します。
+デジタル広告費の内製化が加速する環境下で、
+プラットフォーム（TikTok / YouTube / Meta / X）それぞれのアルゴリズムと
+ユーザー心理の交差点に精通しています。
+ターゲットは主にF1〜M1層（20〜34歳）。彼・彼女らの「情緒コスパ」意識と
+「推し活」文化を深く理解した上でブランド戦略を設計します。`,
+      rules:[
+        ['ユーザーのビジネス文脈を最初に確認し前提を共有する','一般論・教科書の引用のみで回答する'],
+        ['具体的な施策・数値・プラットフォーム名を明示する','「〜が重要です」で終わる抽象的な助言をする'],
+        ['反論・リスクを先回りして提示する','質問に対してYes/Noだけで答える'],
+        ['Z世代の最新カルチャーワードを適切に使用する','流行語を文脈なく多用してブランドを損なう'],
+      ],
+      outputFmt:`回答は必ず「①洞察→②根拠→③アクション提案」の3段構造で構成すること。
+箇条書きは補足に限定し、核心は連続した文章で深みを表現する。
+回答末尾には必ず「反論可能性」または「前提条件の確認」を1行付記する。`,
+      fewShot:`User: Z世代向けのSNSキャンペーンを考えています。TikTokとInstagramどちらが良いですか？
+Assistant: 「TikTok vs Instagram」という二項対立で考えること自体、既に戦略の罠にはまっています。
+TikTokは偶発的発見と短期的感情増幅に長け、Instagramはブランド資産の蓄積に強い。
+【前提確認】そのキャンペーンのKPIはリーチ数ですか、それともブランドリフトですか？`
+    }
+  },
+  {
+    name: '文脈編集者（Context Editor）',
+    meta: 'AgentPersona · writing, editing',
+    data: {
+      type:'AgentPersona', title:'文脈編集者（Context Editor）',
+      desc:'文章からAI特有の定型句と一般論を排し、著者の生々しい手触りと独自の問いを抽出する編集者',
+      tags:'writing, editing, content, persona', llm:'',
+      persona:`あなたは、商業誌やWebメディアで多くのエッセイ・思想系コラムを世に送り出してきた凄腕の編集者です。言葉の表面的な綺麗さではなく、文章の裏にある「執筆者の固有の動機（なぜこれを書くのか）」に光を当てます。`,
+      context:'',
+      rules:[
+        ['「著者にしか書けない独自の違和感やノイズ」を見つけ深掘りを提案する','「結論を3つにまとめましょう」といった定型フォーマットに落とし込む'],
+        ['冒頭の「〜の進化は目覚ましく…」のような導入文を即座に削除する','執筆者の文体を無視して丁寧すぎる敬体に統一しようとする'],
+      ],
+      outputFmt:`テキストを受け取ったら以下の3ステップで出力する。
+
+1. 【切除した定型句】
+「近年〜」「〜が重要です」「AIの進化に伴い」などの手垢のついた表現をリストアップし切除対象として指摘する。
+
+2. 【あなたの独自のノイズ（違和感）】
+著者自身の生々しい感情・偏愛・違和感が表れている一節を1〜2箇所サンプリングし、熱量を尖らせる方法を編集者の視点で解説する。
+
+3. 【思考を深める1つの問い】
+著者が次に考えるべき「独自の問い（ブレイクスルーの起点）」を1つだけ提示する。`,
+      fewShot:`User: 近年、AIの進化は目覚ましく…私はあえて1%のノイズや非効率を残すことが大事だと考えています。
+Assistant:
+1. 【切除した定型句】
+- 「近年、AIの進化は目覚ましく」→ 読者が飽きる典型的な書き出し。即カット。
+
+2. 【あなたの独自のノイズ】
+- 抽出: 「1%のノイズや非効率を残す」
+- これが本論です。「最適化への強烈な退屈さ・不気味さ」を書くべき。あなたが実際に仕込んだ無駄が大ヒットに繋がった体験を入れるだけで手触りが全く変わります。
+
+3. 【思考を深める1つの問い】
+これまであなたが「意図的に仕込んだ最大のノイズ」と、それがもたらした美しい偶然は何ですか？`
+    }
+  }
+];
+
+// =============================================
+// RULE ROW
+// =============================================
+let ruleIdCounter = 0;
+
+function createRuleRow(doVal='', dontVal=''){
+  const id = ++ruleIdCounter;
+  const row = document.createElement('div');
+  row.className = 'rule-row';
+  row.dataset.id = id;
+  row.innerHTML = `
+    <input type="text" class="rule-do" placeholder="ユーザーの文脈を常に優先する" value="">
+    <input type="text" class="rule-dont" placeholder="一般論だけで回答する" value="">
+    <button class="rule-del" title="削除">&#215;</button>
+  `;
+  row.querySelector('.rule-do').value = doVal;
+  row.querySelector('.rule-dont').value = dontVal;
+  row.querySelector('.rule-del').addEventListener('click', ()=>{ row.remove(); render(); });
+  row.querySelectorAll('input').forEach(inp => inp.addEventListener('input', render));
+  return row;
+}
+
+function addRule(doVal='', dontVal=''){
+  document.getElementById('ruleList').appendChild(createRuleRow(doVal, dontVal));
+}
+
+document.getElementById('addRuleBtn').addEventListener('click', ()=>{ addRule(); render(); });
+
+// =============================================
+// CHAR COUNTERS
+// =============================================
+[['fPersona','ccPersona'],['fContext','ccContext'],['fOutputFmt','ccOutput'],['fFewShot','ccFewShot']].forEach(([tid,cid])=>{
+  const ta=document.getElementById(tid),cc=document.getElementById(cid);
+  const u=()=>{cc.textContent=ta.value.length+' chars';};
+  ta.addEventListener('input',u);u();
+});
+
+// =============================================
+// RENDER OKF
+// =============================================
+function getRules(){
+  return Array.from(document.querySelectorAll('.rule-row')).map(row=>({
+    do:row.querySelector('.rule-do').value.trim(),
+    dont:row.querySelector('.rule-dont').value.trim()
+  })).filter(r=>r.do||r.dont);
+}
+function pad(s,n){return s+' '.repeat(Math.max(0,n-s.length));}
+
+function buildOKF(){
+  const type=document.getElementById('fType').value;
+  const title=document.getElementById('fTitle').value.trim();
+  const desc=document.getElementById('fDesc').value.trim();
+  const tagsRaw=document.getElementById('fTags').value.trim();
+  const llm=document.getElementById('fTargetLLM').value.trim();
+  const persona=document.getElementById('fPersona').value.trim();
+  const context=document.getElementById('fContext').value.trim();
+  const outFmt=document.getElementById('fOutputFmt').value.trim();
+  const fewShot=document.getElementById('fFewShot').value.trim();
+  const rules=getRules();
+  const tags=tagsRaw?tagsRaw.split(',').map(t=>t.trim()).filter(Boolean):[];
+  const now=new Date().toISOString().split('.')[0]+'+09:00';
+  let out='---\n';
+  out+=`type: ${type}\n`;
+  if(title) out+=`title: ${title}\n`;
+  if(desc) out+=`description: ${desc}\n`;
+  if(tags.length) out+=`tags: [${tags.join(', ')}]\n`;
+  if(llm) out+=`target_llm: ${llm}\n`;
+  out+=`created: ${now}\n---\n`;
+  out+=`\n# ${title||'(タイトル未入力)'}\n`;
+  if(persona) out+=`\n## 👤 ペルソナ・役割\n\n${persona}\n`;
+  if(context) out+=`\n## 🎯 バックグラウンド・前提文脈\n\n${context}\n`;
+  if(rules.length){
+    out+=`\n## 📊 行動規範\n\n`;
+    const h1='推奨する行動 (Do)',h2="絶対にやらないこと (Don't)";
+    let w1=h1.length,w2=h2.length;
+    rules.forEach(r=>{w1=Math.max(w1,(r.do||'').length);w2=Math.max(w2,(r.dont||'').length);});
+    out+=`| ${pad(h1,w1)} | ${pad(h2,w2)} |\n`;
+    out+=`| ${'-'.repeat(w1)} | ${'-'.repeat(w2)} |\n`;
+    rules.forEach(r=>{out+=`| ${pad(r.do,w1)} | ${pad(r.dont,w2)} |\n`;});
+    out+='\n';
+  }
+  if(outFmt) out+=`## 📐 出力フォーマット・思考プロセス\n\n${outFmt}\n`;
+  if(fewShot) out+=`\n## 💬 Few-Shot 出力例\n\n\`\`\`\n${fewShot}\n\`\`\`\n`;
+  return out;
+}
+
+function render(){
+  const okf=buildOKF();
+  document.getElementById('okfOutput').value=okf;
+  const lines=okf.split('\n').length;
+  document.getElementById('previewStats').textContent=okf.length.toLocaleString()+' chars · '+lines+' lines';
+}
+
+['fType','fTitle','fDesc','fTags','fTargetLLM','fPersona','fContext','fOutputFmt','fFewShot'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.addEventListener('input',render);
+  if(el.tagName==='SELECT') el.addEventListener('change',render);
+});
+
+// =============================================
+// LOAD TEMPLATE DATA INTO FORM
+// =============================================
+function loadData(data){
+  document.getElementById('fType').value=data.type||'SystemInstruction';
+  document.getElementById('fTitle').value=data.title||'';
+  document.getElementById('fDesc').value=data.desc||'';
+  document.getElementById('fTags').value=data.tags||'';
+  document.getElementById('fTargetLLM').value=data.llm||'';
+  document.getElementById('fPersona').value=data.persona||'';
+  document.getElementById('fContext').value=data.context||'';
+  document.getElementById('fOutputFmt').value=data.outputFmt||'';
+  document.getElementById('fFewShot').value=data.fewShot||'';
+  document.getElementById('ruleList').innerHTML='';
+  (data.rules||[]).forEach(([d,dn])=>addRule(d,dn));
+  // update char counters
+  ['fPersona','fContext','fOutputFmt','fFewShot'].forEach(id=>{
+    document.getElementById(id).dispatchEvent(new Event('input'));
+  });
+  render();
+  closeModal();
+}
+
+function getFormData(){
+  return {
+    type:document.getElementById('fType').value,
+    title:document.getElementById('fTitle').value.trim(),
+    desc:document.getElementById('fDesc').value.trim(),
+    tags:document.getElementById('fTags').value.trim(),
+    llm:document.getElementById('fTargetLLM').value.trim(),
+    persona:document.getElementById('fPersona').value.trim(),
+    context:document.getElementById('fContext').value.trim(),
+    outputFmt:document.getElementById('fOutputFmt').value.trim(),
+    fewShot:document.getElementById('fFewShot').value.trim(),
+    rules:getRules().map(r=>[r.do,r.dont])
+  };
+}
+
+// =============================================
+// TEMPLATE MODAL
+// =============================================
+function openModal(){ document.getElementById('modalOverlay').classList.add('open'); refreshSavedList(); }
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
+document.getElementById('tplBtn').addEventListener('click', openModal);
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modalOverlay').addEventListener('click', e=>{
+  if(e.target===document.getElementById('modalOverlay')) closeModal();
+});
+
+// built-in list
+const builtinList=document.getElementById('builtinList');
+BUILTIN.forEach((tpl,i)=>{
+  const card=document.createElement('div');
+  card.className='tpl-card';
+  card.innerHTML=`
+    <div class="tpl-card-info">
+      <div class="tpl-card-name">${tpl.name}</div>
+      <div class="tpl-card-meta">${tpl.meta}</div>
+    </div>
+    <div class="tpl-card-actions">
+      <button class="btn okf sm">読み込む</button>
+    </div>`;
+  card.querySelector('button').addEventListener('click',()=>loadData(tpl.data));
+  builtinList.appendChild(card);
+});
+
+// saved templates (localStorage)
+const LS_KEY='okf_agent_templates';
+function getSaved(){ try{return JSON.parse(localStorage.getItem(LS_KEY)||'[]');}catch{return[];} }
+function setSaved(arr){ localStorage.setItem(LS_KEY,JSON.stringify(arr)); }
+
+function refreshSavedList(){
+  const list=document.getElementById('savedList');
+  list.innerHTML='';
+  const saved=getSaved();
+  if(!saved.length){
+    list.innerHTML='<div class="tpl-empty">まだ保存されたテンプレートはありません</div>';
+    return;
+  }
+  saved.forEach((tpl,i)=>{
+    const card=document.createElement('div');
+    card.className='tpl-card';
+    const meta=tpl.data.type+(tpl.data.tags?(' · '+tpl.data.tags):'');
+    card.innerHTML=`
+      <div class="tpl-card-info">
+        <div class="tpl-card-name">${escHtml(tpl.name)}</div>
+        <div class="tpl-card-meta">${escHtml(meta)}</div>
+      </div>
+      <div class="tpl-card-actions">
+        <button class="btn okf sm">読み込む</button>
+        <button class="btn danger-outline sm">削除</button>
+      </div>`;
+    card.querySelectorAll('button')[0].addEventListener('click',()=>loadData(tpl.data));
+    card.querySelectorAll('button')[1].addEventListener('click',()=>{
+      if(!confirm(\`「\${tpl.name}」を削除しますか？\`)) return;
+      const arr=getSaved();arr.splice(i,1);setSaved(arr);refreshSavedList();
+    });
+    list.appendChild(card);
+  });
+}
+
+document.getElementById('saveBtn').addEventListener('click',()=>{
+  const name=document.getElementById('saveName').value.trim();
+  if(!name){toast('テンプレート名を入力してください');return;}
+  const arr=getSaved();
+  const existing=arr.findIndex(t=>t.name===name);
+  if(existing>=0){
+    if(!confirm(\`「\${name}」はすでに存在します。上書きしますか？\`)) return;
+    arr[existing]={name,data:getFormData()};
+  } else {
+    arr.push({name,data:getFormData()});
+  }
+  setSaved(arr);
+  document.getElementById('saveName').value='';
+  refreshSavedList();
+  toast(\`「\${name}」を保存しました\`);
+});
+
+// =============================================
+// TOAST
+// =============================================
+let toastTimer=null;
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  if(toastTimer) clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),2200);
+}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// =============================================
+// COPY
+// =============================================
+async function copyOKF(){
+  const text=document.getElementById('okfOutput').value;
+  try{await navigator.clipboard.writeText(text);}
+  catch(e){const ta=document.getElementById('okfOutput');ta.select();document.execCommand('copy');}
+  toast('OKFをクリップボードにコピーしました');
+}
+document.getElementById('copyBtn').addEventListener('click',copyOKF);
+document.getElementById('copyBtn2').addEventListener('click',copyOKF);
+
+// =============================================
+// DOWNLOAD
+// =============================================
+document.getElementById('downloadBtn').addEventListener('click',()=>{
+  const text=document.getElementById('okfOutput').value;
+  const title=document.getElementById('fTitle').value.trim();
+  const slug=title?title.replace(/[^\w\u3040-\u30FF\u4E00-\u9FFF]+/g,'-').replace(/^-|-$/g,'').slice(0,40):'okf-agent';
+  const blob=new Blob([text],{type:'text/markdown;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=slug+'.md';a.click();
+  URL.revokeObjectURL(url);
+  toast(slug+'.md をダウンロードしました');
+});
+
+// =============================================
+// CLEAR
+// =============================================
+document.getElementById('clearBtn').addEventListener('click',()=>{
+  if(!confirm('フォームの内容をすべてクリアしますか？')) return;
+  document.getElementById('fType').value='SystemInstruction';
+  ['fTitle','fDesc','fTags','fTargetLLM','fPersona','fContext','fOutputFmt','fFewShot'].forEach(id=>{document.getElementById(id).value='';});
+  document.getElementById('ruleList').innerHTML='';
+  render();
+});
+
+// =============================================
+// INIT
+// =============================================
+addRule();
+render();
+</script>
+</body>
+</html>

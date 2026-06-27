@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OKF変換ラボ — LAB-007</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+:root{
+  --paper:#F7F4EC;
+  --paper-line:#D8D2C4;
+  --ink:#232220;
+  --ink-soft:#6B665C;
+  --okf:#2F6E62;
+  --okf-bg:#E7F0EC;
+  --raw:#B5582C;
+  --raw-bg:#F6E8DE;
+  --card:#FFFFFF;
+  --tab-active:#232220;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'IBM Plex Sans',-apple-system,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  padding-bottom:60px;
+}
+header{
+  padding:28px 20px 18px;
+  border-bottom:1px solid var(--paper-line);
+}
+.eyebrow{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;letter-spacing:0.18em;
+  color:var(--ink-soft);text-transform:uppercase;margin-bottom:6px;
+}
+h1{font-size:21px;margin:0 0 6px;font-weight:600;letter-spacing:-0.01em;}
+.lede{font-size:13px;color:var(--ink-soft);line-height:1.6;max-width:600px;}
+
+main{max-width:940px;margin:0 auto;padding:20px;}
+section{margin-bottom:32px;}
+
+.step-label{
+  font-family:'IBM Plex Mono',monospace;font-size:11px;
+  letter-spacing:0.14em;text-transform:uppercase;
+  color:var(--ink-soft);margin-bottom:10px;
+  display:flex;align-items:center;gap:8px;
+}
+.step-num{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:20px;height:20px;border:1px solid var(--ink);
+  border-radius:3px;font-size:11px;color:var(--ink);
+}
+
+/* ---- tabs ---- */
+.tab-bar{
+  display:flex;gap:0;border-bottom:1px solid var(--paper-line);
+  margin-bottom:14px;
+}
+.tab-btn{
+  font-family:'IBM Plex Mono',monospace;font-size:12px;
+  letter-spacing:0.08em;text-transform:uppercase;
+  padding:8px 18px;border:none;background:transparent;
+  color:var(--ink-soft);cursor:pointer;border-bottom:2px solid transparent;
+  margin-bottom:-1px;transition:color 0.12s;
+}
+.tab-btn.active{color:var(--ink);border-bottom-color:var(--ink);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* ---- file row ---- */
+.file-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+.file-label{
+  font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.06em;
+  border:1px solid var(--ink);background:var(--card);color:var(--ink);
+  padding:8px 14px;border-radius:6px;cursor:pointer;transition:opacity 0.15s;
+}
+.file-label:hover{opacity:0.7;}
+input[type=file]{display:none;}
+.file-name{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);}
+
+textarea{
+  width:100%;min-height:160px;background:var(--card);
+  border:1px solid var(--paper-line);border-radius:6px;
+  padding:12px;font-family:'IBM Plex Mono',monospace;
+  font-size:12px;line-height:1.6;color:var(--ink);resize:vertical;
+}
+textarea.text-input{
+  font-family:'IBM Plex Sans',sans-serif;font-size:13px;
+  min-height:180px;
+}
+textarea:focus,input:focus{outline:2px solid var(--okf);outline-offset:1px;}
+
+button{
+  font-family:'IBM Plex Mono',monospace;font-size:12px;
+  letter-spacing:0.06em;text-transform:uppercase;
+  border:1px solid var(--ink);background:var(--ink);
+  color:var(--paper);padding:10px 18px;border-radius:6px;
+  cursor:pointer;margin-top:10px;
+  transition:transform 0.08s ease,opacity 0.15s ease;
+}
+button:hover{opacity:0.85;}
+button:active{transform:translateY(1px);}
+button:disabled{opacity:0.4;cursor:default;}
+button.ghost{background:transparent;color:var(--ink);}
+button.okf-btn{background:var(--okf);border-color:var(--okf);}
+
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+
+.compare-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:14px;margin-top:14px;
+}
+@media(max-width:720px){.compare-grid{grid-template-columns:1fr;}}
+
+.pane{border-radius:8px;border:1px solid var(--paper-line);overflow:hidden;background:var(--card);}
+.pane-head{
+  font-family:'IBM Plex Mono',monospace;font-size:11px;
+  letter-spacing:0.12em;text-transform:uppercase;
+  padding:9px 12px;display:flex;justify-content:space-between;align-items:center;
+}
+.pane.raw .pane-head{background:var(--raw-bg);color:var(--raw);}
+.pane.okf .pane-head{background:var(--okf-bg);color:var(--okf);}
+.pane-body{
+  padding:12px;font-family:'IBM Plex Mono',monospace;
+  font-size:11.5px;line-height:1.65;white-space:pre-wrap;
+  word-break:break-word;max-height:440px;overflow:auto;color:var(--ink);
+}
+.ai-pane .pane-body{
+  font-family:'IBM Plex Sans',sans-serif;font-size:13px;
+  line-height:1.7;white-space:normal;
+}
+.ai-pane .pane-body p{margin:0 0 8px;}
+
+/* copy button inside pane */
+.copy-btn{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;
+  letter-spacing:0.06em;text-transform:uppercase;
+  border:1px solid currentColor;background:transparent;
+  color:inherit;padding:3px 8px;border-radius:4px;
+  cursor:pointer;margin-top:0;
+  opacity:0.7;
+}
+.copy-btn:hover{opacity:1;}
+
+.ai-prompt-row{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;}
+.ai-prompt-row input[type=text]{
+  flex:1;min-width:200px;
+  font-family:'IBM Plex Sans',sans-serif;font-size:13px;
+  padding:10px 12px;border:1px solid var(--paper-line);
+  border-radius:6px;background:var(--card);
+}
+
+.status{
+  font-family:'IBM Plex Mono',monospace;font-size:11px;
+  color:var(--ink-soft);margin-top:6px;min-height:16px;
+}
+.hint{font-size:12px;color:var(--ink-soft);line-height:1.6;margin-top:8px;}
+.divider{height:1px;background:var(--paper-line);margin:32px 0;}
+
+/* text mode: single okf pane (no BEFORE) */
+.single-pane{margin-top:14px;}
+.text-ai-note{
+  font-family:'IBM Plex Mono',monospace;font-size:11px;
+  color:var(--okf);background:var(--okf-bg);
+  padding:6px 10px;border-radius:4px;margin-bottom:10px;
+  display:inline-block;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">LAB-007 / OKF実験室</div>
+  <h1>OKF変換ラボ</h1>
+  <div class="lede">
+    JSON・テキストをOpen Knowledge Format(Markdown + YAMLフロントマター)に変換。同じデータを「元データ」と「OKF」でAIに渡したときの応答を比較します。
+  </div>
+</header>
+
+<main>
+
+<!-- ===== STEP 1 ===== -->
+<section>
+  <div class="step-label"><span class="step-num">1</span> 入力データ</div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="json">JSON</button>
+    <button class="tab-btn" data-tab="text">テキスト</button>
+  </div>
+
+  <!-- JSON tab -->
+  <div class="tab-panel active" id="tab-json">
+    <div class="file-row">
+      <label class="file-label" for="fileInput">📁 JSONファイルを選択</label>
+      <input type="file" id="fileInput" accept=".json,application/json,.txt">
+      <span class="file-name" id="fileName">ファイル未選択</span>
+    </div>
+    <textarea id="jsonInput" spellcheck="false"></textarea>
+    <div class="btn-row">
+      <button id="convertJsonBtn" class="okf-btn">OKFに変換する →</button>
+      <button class="ghost" id="loadSampleBtn">サンプル</button>
+    </div>
+    <div class="hint">zgene / atlas の週次エントリーなど。ファイル選択 or 直接貼り付けでOK。大きいJSONは一部を切り取って試すのがおすすめです。</div>
+  </div>
+
+  <!-- Text tab -->
+  <div class="tab-panel" id="tab-text">
+    <div class="file-row">
+      <label class="file-label" for="textFileInput">📄 テキストファイルを選択</label>
+      <input type="file" id="textFileInput" accept=".txt,.md,.text">
+      <span class="file-name" id="textFileName">ファイル未選択</span>
+    </div>
+    <textarea id="textInput" class="text-input" placeholder="会議メモ、記事、リサーチノート、プレスリリースなど — 自由なテキストを貼り付けてください。AIがOKF形式のフロントマターとMarkdown構造に変換します。" spellcheck="false"></textarea>
+    <div class="hint" style="margin-bottom:8px;">変換タイプのヒント（任意）:</div>
+    <div class="file-row" style="gap:6px;margin-bottom:8px;">
+      <button class="ghost" style="margin-top:0;padding:6px 12px;font-size:11px;" data-hint="Meeting Note">会議メモ</button>
+      <button class="ghost" style="margin-top:0;padding:6px 12px;font-size:11px;" data-hint="Research Note">リサーチ</button>
+      <button class="ghost" style="margin-top:0;padding:6px 12px;font-size:11px;" data-hint="Weekly Signal">週次シグナル</button>
+      <button class="ghost" style="margin-top:0;padding:6px 12px;font-size:11px;" data-hint="Article">記事</button>
+      <button class="ghost" style="margin-top:0;padding:6px 12px;font-size:11px;" data-hint="Strategy Brief">戦略ブリーフ</button>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <input type="text" id="typeHint" placeholder="type（例: Meeting Note）" style="font-family:'IBM Plex Mono',monospace;font-size:12px;padding:8px 12px;border:1px solid var(--paper-line);border-radius:6px;background:var(--card);width:220px;">
+      <button id="convertTextBtn" class="okf-btn" style="margin-top:0;">AIでOKFに変換する →</button>
+    </div>
+    <div class="status" id="textConvertStatus"></div>
+    <div class="hint">AIがタイトル・タグ・要約・構造を推定してOKFを生成します。</div>
+  </div>
+</section>
+
+<!-- ===== STEP 2 ===== -->
+<section id="compareSection" style="display:none;">
+  <div class="step-label"><span class="step-num">2</span> 変換結果</div>
+
+  <!-- JSON mode: BEFORE / AFTER -->
+  <div id="jsonCompareGrid" class="compare-grid">
+    <div class="pane raw">
+      <div class="pane-head"><span>BEFORE — RAW JSON</span><span id="rawSize"></span></div>
+      <div class="pane-body" id="rawOutput"></div>
+    </div>
+    <div class="pane okf">
+      <div class="pane-head">
+        <span>AFTER — OKF</span>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span id="okfSize"></span>
+          <button class="copy-btn" id="copyOkfBtn">copy</button>
+        </div>
+      </div>
+      <div class="pane-body" id="okfOutput"></div>
+    </div>
+  </div>
+
+  <!-- Text mode: single OKF pane -->
+  <div id="textResultPane" class="single-pane" style="display:none;">
+    <div class="pane okf">
+      <div class="pane-head">
+        <span>OKF出力</span>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span id="textOkfSize"></span>
+          <button class="copy-btn" id="copyTextOkfBtn">copy</button>
+        </div>
+      </div>
+      <div class="pane-body" id="textOkfOutput"></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider" id="step3divider" style="display:none;"></div>
+
+<!-- ===== STEP 3 ===== -->
+<section id="aiSection" style="display:none;">
+  <div class="step-label"><span class="step-num">3</span> 同じ質問をAIに投げて比較</div>
+  <div class="ai-prompt-row">
+    <input type="text" id="promptInput" value="このデータから読み取れる傾向を3点と、来週のマーケティング施策への含意を1点、簡潔に挙げてください。">
+    <button id="compareBtn">比較する</button>
+  </div>
+  <div class="status" id="aiStatus"></div>
+  <div class="compare-grid" style="margin-top:14px;">
+    <div class="pane raw ai-pane">
+      <div class="pane-head"><span id="rawAiLabel">応答 — 元データ</span></div>
+      <div class="pane-body" id="rawAiOutput">—</div>
+    </div>
+    <div class="pane okf ai-pane">
+      <div class="pane-head"><span>応答 — OKFを渡した場合</span></div>
+      <div class="pane-body" id="okfAiOutput">—</div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+// =============================================
+// SAMPLE DATA
+// =============================================
+const SAMPLE = {
+  type:"weekly",
+  title:"Z世代Signal — 2026-06-08週",
+  period:{start:"2026-06-08",end:"2026-06-14"},
+  tags:["タイパ","推し活","AI日常化"],
+  timestamp:"2026-06-14T23:00:00+09:00",
+  articles:[
+    {title:"若者の『推し活疲れ』、消費行動に変化",source:"note",keyword:"推し活疲れ"},
+    {title:"Z世代、AIとの会話を『日記』として活用する動き",source:"X",keyword:"AI日常化"},
+    {title:"タイパ消費の次に来る『情緒コスパ』とは",source:"note",keyword:"情緒コスパ"}
+  ],
+  essay:{
+    summary:"タイパ重視の消費がピークを過ぎ、感情の納得感を重視する『情緒コスパ』へのシフトが見られた週。AIは検索ツールから対話相手としての位置づけに移行している。",
+    period_definition:"2026年6月第2週",
+    keywords:["情緒コスパ","推し活疲れ","AI日常化"],
+    sections:[
+      {heading:"消費トレンド",body:"速さや効率だけでなく、選んだことへの納得感を求める傾向が強まっている。"},
+      {heading:"AI利用",body:"AIに対する心理的距離が縮まり、相談相手・記録ツールとしての利用が増加。"}
+    ]
+  }
+};
+
+// =============================================
+// STATE
+// =============================================
+let currentMode = 'json'; // 'json' | 'text'
+let store = { rawStr:'', okfStr:'' };
+
+// =============================================
+// TABS
+// =============================================
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    document.getElementById('tab-'+tab).classList.add('active');
+    currentMode = tab;
+    // reset result area
+    document.getElementById('compareSection').style.display='none';
+    document.getElementById('step3divider').style.display='none';
+    document.getElementById('aiSection').style.display='none';
+  });
+});
+
+// =============================================
+// TYPE HINT CHIPS
+// =============================================
+document.querySelectorAll('[data-hint]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('typeHint').value = btn.dataset.hint;
+  });
+});
+
+// =============================================
+// FILE READERS
+// =============================================
+document.getElementById('fileInput').addEventListener('change', e => {
+  const file = e.target.files[0]; if(!file) return;
+  document.getElementById('fileName').textContent = file.name;
+  readFile(file, text => {
+    try {
+      const parsed = JSON.parse(text);
+      document.getElementById('jsonInput').value = JSON.stringify(parsed,null,2);
+    } catch(err) {
+      document.getElementById('jsonInput').value = text;
+      alert('JSONとして解析できませんでした。内容を確認してください。\n('+err.message+')');
+    }
+  });
+});
+
+document.getElementById('textFileInput').addEventListener('change', e => {
+  const file = e.target.files[0]; if(!file) return;
+  document.getElementById('textFileName').textContent = file.name;
+  readFile(file, text => {
+    document.getElementById('textInput').value = text;
+  });
+});
+
+function readFile(file, cb){
+  const reader = new FileReader();
+  reader.onload = ev => cb(ev.target.result);
+  reader.onerror = () => alert('ファイルの読み込みに失敗しました');
+  reader.readAsText(file,'utf-8');
+}
+
+// =============================================
+// SAMPLE
+// =============================================
+document.getElementById('loadSampleBtn').addEventListener('click', () => {
+  document.getElementById('jsonInput').value = JSON.stringify(SAMPLE,null,2);
+  document.getElementById('fileName').textContent = 'ファイル未選択';
+  document.getElementById('fileInput').value = '';
+});
+
+// =============================================
+// JSON -> OKF (deterministic)
+// =============================================
+function isObj(v){ return v!==null && typeof v==='object' && !Array.isArray(v); }
+
+function arrayToMd(key,arr,depth){
+  const h='#'.repeat(Math.min(depth+1,4));
+  let out=`\n${h} ${key}\n\n`;
+  if(!arr.length) return out+'(empty)\n';
+  const allObj=arr.every(isObj);
+  if(allObj){
+    const keys=[...new Set(arr.flatMap(o=>Object.keys(o)))].slice(0,6);
+    out+=`| ${keys.join(' | ')} |\n|${keys.map(()=>'---').join('|')}|\n`;
+    arr.forEach(o=>{
+      out+=`| ${keys.map(k=>{
+        const v=o[k];
+        if(v===undefined) return '';
+        if(isObj(v)||Array.isArray(v)) return JSON.stringify(v);
+        return String(v).replace(/\n/g,' ').slice(0,60);
+      }).join(' | ')} |\n`;
+    });
+  } else {
+    arr.forEach(item=>{ out+=`- ${isObj(item)?JSON.stringify(item):item}\n`; });
+  }
+  return out+'\n';
+}
+
+function objToMd(key,obj,depth){
+  const h='#'.repeat(Math.min(depth+1,4));
+  return `\n${h} ${key}\n\n`+renderBody(obj,depth+1);
+}
+
+function renderBody(obj,depth){
+  let out='';
+  for(const [k,v] of Object.entries(obj)){
+    if(v===null||v===undefined) continue;
+    if(Array.isArray(v)) out+=arrayToMd(k,v,depth);
+    else if(isObj(v)) out+=objToMd(k,v,depth);
+    else out+=`**${k}**: ${v}\n\n`;
+  }
+  return out;
+}
+
+const FM_KEYS=['type','title','description','resource','tags','timestamp'];
+function jsonToOKF(data){
+  const obj=Array.isArray(data)?{type:'List',items:data}:data;
+  const fm={type:obj.type||'Record'};
+  FM_KEYS.forEach(k=>{
+    if(k==='type') return;
+    if(obj[k]!==undefined && typeof obj[k]!=='object') fm[k]=obj[k];
+    else if(k==='tags'&&Array.isArray(obj.tags)) fm.tags=obj.tags;
+  });
+  let yaml='---\n';
+  for(const [k,v] of Object.entries(fm)){
+    yaml+=Array.isArray(v)?`${k}: [${v.join(', ')}]\n`:`${k}: ${v}\n`;
+  }
+  yaml+='---\n';
+  const bodyObj={};
+  for(const [k,v] of Object.entries(obj)){
+    if(k==='type'||k==='title') continue;
+    if(k==='tags'&&fm.tags) continue;
+    if(['description','resource'].includes(k)&&fm[k]!==undefined) continue;
+    bodyObj[k]=v;
+  }
+  return yaml+(fm.title?`\n# ${fm.title}\n`:'')+renderBody(bodyObj,1);
+}
+
+// =============================================
+// JSON CONVERT BUTTON
+// =============================================
+document.getElementById('convertJsonBtn').addEventListener('click', () => {
+  let data;
+  try { data=JSON.parse(document.getElementById('jsonInput').value); }
+  catch(e){ alert('JSONの形式が正しくありません: '+e.message); return; }
+
+  const rawStr=JSON.stringify(data,null,2);
+  const okfStr=jsonToOKF(data);
+  store={rawStr,okfStr};
+
+  document.getElementById('rawOutput').textContent=rawStr;
+  document.getElementById('okfOutput').textContent=okfStr;
+  document.getElementById('rawSize').textContent=rawStr.length+' chars';
+  document.getElementById('okfSize').textContent=okfStr.length+' chars';
+
+  document.getElementById('jsonCompareGrid').style.display='grid';
+  document.getElementById('textResultPane').style.display='none';
+  document.getElementById('rawAiLabel').textContent='応答 — RAW JSON';
+
+  showStep2and3();
+});
+
+// =============================================
+// TEXT -> OKF via AI
+// =============================================
+document.getElementById('convertTextBtn').addEventListener('click', async () => {
+  const text=document.getElementById('textInput').value.trim();
+  if(!text){ alert('テキストを入力してください'); return; }
+
+  const typeHint=document.getElementById('typeHint').value.trim();
+  const btn=document.getElementById('convertTextBtn');
+  const status=document.getElementById('textConvertStatus');
+  btn.disabled=true;
+  status.textContent='AIが変換中…';
+
+  try {
+    const okfStr=await textToOKFviaAI(text, typeHint);
+    store={rawStr:text, okfStr};
+
+    document.getElementById('textOkfOutput').textContent=okfStr;
+    document.getElementById('textOkfSize').textContent=okfStr.length+' chars';
+    document.getElementById('jsonCompareGrid').style.display='none';
+    document.getElementById('textResultPane').style.display='block';
+    document.getElementById('rawAiLabel').textContent='応答 — 元テキスト';
+
+    status.textContent='変換完了';
+    showStep2and3();
+  } catch(e){
+    status.textContent='エラー: '+e.message;
+  } finally {
+    btn.disabled=false;
+  }
+});
+
+async function textToOKFviaAI(text, typeHint){
+  const system=`あなたはOpen Knowledge Format(OKF)変換エンジンです。
+ユーザーのテキストを受け取り、OKF仕様(Markdown + YAMLフロントマター)に変換してください。
+
+【出力形式】
+---
+type: ${typeHint||'(推定してください)'}
+title: (簡潔なタイトル)
+description: (1〜2文の要約)
+tags: [タグ1, タグ2, タグ3]
+timestamp: (ISO8601、不明なら省略)
+---
+
+# (title)
+
+## (セクション見出し)
+(内容をMarkdownで構造化)
+
+## (次のセクション)
+...
+
+【ルール】
+- YAMLフロントマターは必ず --- で囲む
+- 本文はMarkdown見出し(##、###)で論理的に構造化する
+- 箇条書き・表を積極活用する
+- 原文の情報を漏らさず盛り込む
+- コードブロック・バッククォートは使わない
+- 日本語で出力する
+- 前置き・後置きの説明は一切不要。OKF本文のみ出力する`;
+
+  const res=await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      model:"claude-sonnet-4-6",
+      max_tokens:1000,
+      system,
+      messages:[{role:"user",content:text}]
+    })
+  });
+  const data=await res.json();
+  const blocks=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text);
+  const result=blocks.join('\n').trim();
+  if(!result) throw new Error(JSON.stringify(data));
+  return result;
+}
+
+// =============================================
+// SHOW STEP 2 & 3
+// =============================================
+function showStep2and3(){
+  document.getElementById('compareSection').style.display='block';
+  document.getElementById('step3divider').style.display='block';
+  document.getElementById('aiSection').style.display='block';
+  document.getElementById('rawAiOutput').textContent='—';
+  document.getElementById('okfAiOutput').textContent='—';
+  document.getElementById('aiStatus').textContent='';
+}
+
+// =============================================
+// COPY BUTTONS
+// =============================================
+function makeCopy(btnId, getStr){
+  document.getElementById(btnId).addEventListener('click', async ()=>{
+    try{
+      await navigator.clipboard.writeText(getStr());
+      const btn=document.getElementById(btnId);
+      btn.textContent='copied!';
+      setTimeout(()=>{btn.textContent='copy';},1500);
+    }catch(e){ alert('コピーに失敗しました'); }
+  });
+}
+makeCopy('copyOkfBtn', ()=>store.okfStr);
+makeCopy('copyTextOkfBtn', ()=>store.okfStr);
+
+// =============================================
+// AI COMPARISON (Step 3)
+// =============================================
+async function askClaude(contextStr, label, question){
+  const sys=`あなたはマーケティングアナリストです。以下のデータ(${label}形式)を文脈として、ユーザーの質問に簡潔な日本語で答えてください。\n\n----\n${contextStr}\n----`;
+  const res=await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      model:"claude-sonnet-4-6",max_tokens:1000,
+      system:sys,
+      messages:[{role:"user",content:question}]
+    })
+  });
+  const data=await res.json();
+  return (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n')||JSON.stringify(data);
+}
+
+function renderAi(el, text){
+  el.innerHTML=text.split('\n')
+    .map(l=>`<p>${l.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</p>`)
+    .join('');
+}
+
+document.getElementById('compareBtn').addEventListener('click', async ()=>{
+  const btn=document.getElementById('compareBtn');
+  const status=document.getElementById('aiStatus');
+  const question=document.getElementById('promptInput').value.trim();
+  if(!question){ alert('質問を入力してください'); return; }
+  if(!store.rawStr||!store.okfStr){ alert('先に変換してください'); return; }
+
+  btn.disabled=true;
+  status.textContent='問い合わせ中…(2件同時)';
+  document.getElementById('rawAiOutput').textContent='…';
+  document.getElementById('okfAiOutput').textContent='…';
+
+  const rawLabel=currentMode==='json'?'JSON':'プレーンテキスト';
+
+  try{
+    const [rawAns, okfAns]=await Promise.all([
+      askClaude(store.rawStr, rawLabel, question),
+      askClaude(store.okfStr, 'OKF (Markdown+YAML)', question)
+    ]);
+    renderAi(document.getElementById('rawAiOutput'), rawAns);
+    renderAi(document.getElementById('okfAiOutput'), okfAns);
+    status.textContent='完了';
+  } catch(e){
+    status.textContent='エラー: '+e.message;
+  } finally {
+    btn.disabled=false;
+  }
+});
+
+// init
+document.getElementById('jsonInput').value=JSON.stringify(SAMPLE,null,2);
+</script>
+</body>
+</html>
