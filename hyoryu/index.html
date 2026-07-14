@@ -1,1 +1,607 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>漂流座標 — Drifting Coordinates</title>
+<style>
+:root {
+  --ink:#e8e0d4; --ink-dim:#9a9080; --ink-ghost:#4a4540;
+  --water-deep:#070a0e;
+  --rust:#8b4a2a; --rust-glow:#c4622d;
+  --moss:#3a5a3a; --moss-glow:#5a8a5a;
+  --tide-glow:#2a4a6a;
+  --amber:#c8922a; --amber-dim:#7a5a1a;
+  --font-main:'Georgia','Noto Serif JP',serif;
+  --font-mono:'Courier New',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;scroll-behavior:smooth}
+body{background:var(--water-deep);color:var(--ink);font-family:var(--font-main);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 80%,rgba(26,42,58,.4) 0%,transparent 60%),radial-gradient(ellipse 60% 80% at 80% 20%,rgba(58,90,58,.15) 0%,transparent 50%),radial-gradient(ellipse 100% 100% at 50% 50%,rgba(13,17,23,.8) 0%,var(--water-deep) 100%);pointer-events:none;z-index:0}
+.particle-field{position:fixed;inset:0;pointer-events:none;z-index:1;overflow:hidden}
+.particle{position:absolute;border-radius:50%;opacity:0;animation:pdrift linear infinite}
+@keyframes pdrift{0%{opacity:0;transform:translate(0,0) scale(.5)}10%{opacity:.6}90%{opacity:.3}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(1.2)}}
+#app{position:relative;z-index:2;max-width:860px;margin:0 auto;padding:0 1.2rem 4rem}
+header{padding:3.5rem 0 2rem;text-align:center}
+.title-kanji{font-size:clamp(2.4rem,7vw,4rem);letter-spacing:.25em;color:var(--ink);text-shadow:0 0 40px rgba(200,146,42,.3),0 0 80px rgba(200,146,42,.1);line-height:1.1;font-weight:normal}
+.title-roman{font-family:var(--font-mono);font-size:.75rem;letter-spacing:.4em;color:var(--ink-dim);margin-top:.6rem;text-transform:uppercase}
+.header-divider{width:1px;height:60px;background:linear-gradient(to bottom,transparent,var(--amber-dim),transparent);margin:1.5rem auto}
+.header-concept{font-size:.82rem;color:var(--ink-ghost);line-height:2;letter-spacing:.05em;max-width:480px;margin:0 auto;font-style:italic}
+#api-panel{background:rgba(17,24,32,.8);border:1px solid var(--ink-ghost);border-radius:2px;padding:1.2rem 1.5rem;margin-bottom:2rem;display:flex;gap:.8rem;align-items:center;flex-wrap:wrap}
+#api-panel label{font-family:var(--font-mono);font-size:.72rem;color:var(--ink-dim);letter-spacing:.1em;white-space:nowrap}
+#api-key-input{flex:1;min-width:200px;background:rgba(0,0,0,.4);border:1px solid var(--ink-ghost);border-radius:1px;color:var(--ink);font-family:var(--font-mono);font-size:.78rem;padding:.5rem .8rem;outline:none;transition:border-color .3s}
+#api-key-input:focus{border-color:var(--amber-dim)}
+#btn-register{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.1em;padding:.45rem 1rem;border-radius:1px;border:1px solid var(--amber-dim);color:var(--amber);background:transparent;cursor:pointer;transition:all .3s;white-space:nowrap}
+#btn-register:hover{background:rgba(200,146,42,.1);border-color:var(--amber)}
+.api-status{font-family:var(--font-mono);font-size:.68rem;padding:.3rem .7rem;border-radius:1px;white-space:nowrap}
+.api-status.connected{background:rgba(58,90,58,.3);color:var(--moss-glow);border:1px solid var(--moss)}
+.api-status.disconnected{background:rgba(139,74,42,.2);color:var(--rust-glow);border:1px solid var(--rust)}
+.coord-display{display:flex;gap:1.5rem;margin-bottom:1.5rem;flex-wrap:wrap}
+.coord-box{background:rgba(7,10,14,.8);border:1px solid var(--ink-ghost);border-radius:2px;padding:.8rem 1.2rem;flex:1;min-width:140px}
+.coord-box-label{font-family:var(--font-mono);font-size:.6rem;color:var(--ink-ghost);letter-spacing:.15em;margin-bottom:.3rem;text-transform:uppercase}
+.coord-box-value{font-family:var(--font-mono);font-size:1.1rem;color:var(--amber);letter-spacing:.05em}
+#coordinate-canvas-wrap{position:relative;margin-bottom:2rem}
+#coordinate-canvas{width:100%;height:340px;background:rgba(7,10,14,.9);border:1px solid var(--ink-ghost);border-radius:2px;display:block;position:relative;overflow:hidden}
+.canvas-label{font-family:var(--font-mono);font-size:.65rem;color:var(--ink-ghost);letter-spacing:.15em;position:absolute;pointer-events:none}
+.canvas-label.top-left{top:.6rem;left:.8rem}
+.canvas-label.top-right{top:.6rem;right:.8rem;text-align:right}
+.canvas-label.bot-left{bottom:.6rem;left:.8rem}
+.canvas-label.bot-right{bottom:.6rem;right:.8rem;text-align:right}
+#coord-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.section-label{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.2em;color:var(--ink-ghost);text-transform:uppercase;margin-bottom:.6rem;display:flex;align-items:center;gap:.8rem}
+.section-label::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--ink-ghost),transparent)}
+.entry-zone{background:rgba(13,17,23,.7);border:1px solid var(--ink-ghost);border-radius:2px;padding:1.2rem;margin-bottom:1.5rem;transition:border-color .4s}
+.entry-zone:focus-within{border-color:var(--amber-dim);box-shadow:0 0 20px rgba(200,146,42,.05)}
+.entry-textarea{width:100%;background:transparent;border:none;color:var(--ink);font-family:var(--font-main);font-size:1rem;line-height:1.9;resize:none;outline:none;min-height:100px;letter-spacing:.03em}
+.entry-textarea::placeholder{color:var(--ink-ghost);font-style:italic}
+.entry-meta{display:flex;justify-content:space-between;align-items:center;margin-top:.8rem;padding-top:.8rem;border-top:1px solid rgba(74,69,64,.3);flex-wrap:wrap;gap:.5rem}
+.entry-timestamp{font-family:var(--font-mono);font-size:.65rem;color:var(--ink-ghost)}
+.btn{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.12em;padding:.55rem 1.2rem;border-radius:1px;border:1px solid;cursor:pointer;transition:all .3s;text-transform:uppercase;background:transparent}
+.btn-drift{border-color:var(--amber-dim);color:var(--amber)}
+.btn-drift:hover:not(:disabled){background:rgba(200,146,42,.1);border-color:var(--amber);box-shadow:0 0 15px rgba(200,146,42,.15)}
+.btn-drift:disabled{opacity:.4;cursor:not-allowed}
+.btn-shed{border-color:var(--moss);color:var(--moss-glow)}
+.btn-shed:hover{background:rgba(90,138,90,.1);border-color:var(--moss-glow)}
+.btn-rust{border-color:var(--rust);color:var(--rust-glow)}
+.btn-rust:hover{background:rgba(139,74,42,.1);border-color:var(--rust-glow)}
+.btn-ghost{border-color:var(--ink-ghost);color:var(--ink-dim);font-size:.65rem;padding:.4rem .8rem}
+.btn-ghost:hover{border-color:var(--ink-dim);color:var(--ink)}
+#drift-response{background:rgba(26,42,58,.3);border-left:2px solid var(--tide-glow);border-radius:0 2px 2px 0;padding:1.4rem 1.6rem;margin-bottom:1.5rem;display:none;position:relative;overflow:hidden}
+#drift-response::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(to right,var(--tide-glow),transparent)}
+#drift-response.visible{display:block}
+.response-label{font-family:var(--font-mono);font-size:.62rem;color:var(--tide-glow);letter-spacing:.2em;margin-bottom:.8rem;text-transform:uppercase}
+#drift-text{font-size:.95rem;line-height:2;color:var(--ink-dim);letter-spacing:.04em;white-space:pre-wrap}
+.typing-cursor{display:inline-block;width:2px;height:1em;background:var(--tide-glow);margin-left:2px;animation:blink 1s step-end infinite;vertical-align:text-bottom}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.loading-wave{display:flex;gap:4px;align-items:center;padding:.5rem 0}
+.loading-wave span{display:inline-block;width:4px;height:4px;border-radius:50%;background:var(--tide-glow);animation:wave 1.2s ease-in-out infinite}
+.loading-wave span:nth-child(2){animation-delay:.15s}
+.loading-wave span:nth-child(3){animation-delay:.3s}
+.loading-wave span:nth-child(4){animation-delay:.45s}
+.loading-wave span:nth-child(5){animation-delay:.6s}
+@keyframes wave{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-6px);opacity:1}}
+#shed-panel{margin-bottom:2rem}
+.shed-controls{display:flex;gap:.6rem;margin-bottom:1rem;flex-wrap:wrap}
+.shed-item{background:rgba(13,17,23,.6);border:1px solid var(--ink-ghost);border-radius:2px;padding:1rem 1.2rem;margin-bottom:.8rem;display:flex;gap:1rem;align-items:flex-start;transition:border-color .3s}
+.shed-item.shed-done{border-color:var(--moss);background:rgba(58,90,58,.08)}
+.shed-item.shed-done .shed-text{text-decoration:line-through;color:var(--ink-ghost)}
+.shed-checkbox{width:18px;height:18px;border:1px solid var(--ink-ghost);border-radius:1px;background:transparent;cursor:pointer;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;transition:all .3s;font-size:.7rem;color:var(--moss-glow)}
+.shed-checkbox.checked{border-color:var(--moss-glow);background:rgba(90,138,90,.2)}
+.shed-text-wrap{flex:1}
+.shed-text{font-size:.9rem;line-height:1.7;color:var(--ink-dim);letter-spacing:.03em}
+.shed-meta{font-family:var(--font-mono);font-size:.6rem;color:var(--ink-ghost);margin-top:.3rem}
+.shed-delete{background:none;border:none;color:var(--ink-ghost);cursor:pointer;font-size:.8rem;padding:.2rem;transition:color .2s;flex-shrink:0}
+.shed-delete:hover{color:var(--rust-glow)}
+#notdo-panel{margin-bottom:2rem}
+.notdo-add-zone{display:flex;gap:.6rem;margin-bottom:1rem;flex-wrap:wrap}
+.notdo-input{flex:1;min-width:200px;background:rgba(0,0,0,.4);border:1px solid var(--ink-ghost);border-radius:1px;color:var(--ink);font-family:var(--font-main);font-size:.88rem;padding:.6rem .9rem;outline:none;transition:border-color .3s}
+.notdo-input:focus{border-color:var(--rust)}
+.notdo-item{background:rgba(13,17,23,.6);border:1px solid rgba(139,74,42,.3);border-left:3px solid var(--rust);border-radius:0 2px 2px 0;padding:.9rem 1.1rem;margin-bottom:.6rem;display:flex;align-items:center;gap:.8rem;transition:all .3s}
+.notdo-item:hover{border-left-color:var(--rust-glow);background:rgba(139,74,42,.05)}
+.notdo-icon{font-size:.9rem;flex-shrink:0;opacity:.7}
+.notdo-text{flex:1;font-size:.88rem;color:var(--ink-dim);line-height:1.6}
+.notdo-reminder{font-family:var(--font-mono);font-size:.6rem;color:var(--rust);letter-spacing:.1em;white-space:nowrap}
+.notdo-delete{background:none;border:none;color:var(--ink-ghost);cursor:pointer;font-size:.8rem;padding:.2rem;transition:color .2s}
+.notdo-delete:hover{color:var(--rust-glow)}
+#drift-log{margin-bottom:2rem}
+.log-entry{border-left:1px solid var(--ink-ghost);padding:.8rem 1.2rem;margin-bottom:.6rem;position:relative;transition:border-color .3s}
+.log-entry::before{content:'';position:absolute;left:-4px;top:50%;transform:translateY(-50%);width:7px;height:7px;border-radius:50%;background:var(--ink-ghost);transition:background .3s}
+.log-entry:hover{border-color:var(--amber-dim)}
+.log-entry:hover::before{background:var(--amber-dim)}
+.log-entry-time{font-family:var(--font-mono);font-size:.6rem;color:var(--ink-ghost);margin-bottom:.3rem;letter-spacing:.1em}
+.log-entry-text{font-size:.88rem;color:var(--ink-dim);line-height:1.7;letter-spacing:.02em}
+.log-entry-coord{font-family:var(--font-mono);font-size:.6rem;color:var(--tide-glow);margin-top:.3rem}
+footer{text-align:center;padding:2rem 0;border-top:1px solid rgba(74,69,64,.2)}
+.footer-text{font-family:var(--font-mono);font-size:.6rem;color:var(--ink-ghost);letter-spacing:.15em;line-height:2}
+#toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(17,24,32,.95);border:1px solid var(--ink-ghost);color:var(--ink-dim);font-family:var(--font-mono);font-size:.72rem;letter-spacing:.1em;padding:.7rem 1.4rem;border-radius:2px;opacity:0;transition:all .4s;z-index:100;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:600px){.coord-display{gap:.8rem}.coord-box{min-width:100px;padding:.6rem .9rem}#coordinate-canvas{height:220px}.entry-textarea{font-size:.95rem}}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--water-deep)}::-webkit-scrollbar-thumb{background:var(--ink-ghost);border-radius:2px}
+::selection{background:rgba(200,146,42,.2);color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="particle-field" id="particle-field"></div>
+<div id="app">
+  <header>
+    <div class="title-kanji">漂流座標</div>
+    <div class="title-roman">Drifting Coordinates</div>
+    <div class="header-divider"></div>
+    <p class="header-concept">入水した地点から、どう動いていくかを見ていく。<br>動くたびに何かを脱皮する、その記録帳。<br>やらないことをやらないために、後押しする装置。</p>
+  </header>
 
+  <div id="api-panel">
+    <label for="api-key-input">ANTHROPIC API KEY</label>
+    <input type="password" id="api-key-input" placeholder="sk-ant-..." autocomplete="off"/>
+    <button id="btn-register">登録</button>
+    <div class="api-status disconnected" id="api-status">● 未接続</div>
+  </div>
+
+  <div class="coord-display">
+    <div class="coord-box"><div class="coord-box-label">入水地点 / Origin</div><div class="coord-box-value" id="coord-origin">—</div></div>
+    <div class="coord-box"><div class="coord-box-label">現在座標 / Current</div><div class="coord-box-value" id="coord-current">—</div></div>
+    <div class="coord-box"><div class="coord-box-label">漂流距離 / Distance</div><div class="coord-box-value" id="coord-distance">0.00</div></div>
+    <div class="coord-box"><div class="coord-box-label">脱皮回数 / Sheddings</div><div class="coord-box-value" id="coord-sheddings">0</div></div>
+  </div>
+
+  <div id="coordinate-canvas-wrap">
+    <div id="coordinate-canvas">
+      <svg id="coord-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+      <span class="canvas-label top-left">混沌 / CHAOS</span>
+      <span class="canvas-label top-right">解放 / RELEASE</span>
+      <span class="canvas-label bot-left">停滞 / STASIS</span>
+      <span class="canvas-label bot-right">秩序 / ORDER</span>
+    </div>
+  </div>
+
+  <div class="section-label">今の思考を投げ込む / Cast Your Thought</div>
+  <div class="entry-zone">
+    <textarea class="entry-textarea" id="thought-input" placeholder="今、頭の中にあることを、そのまま。整えなくていい。答えを求めなくていい。ただ、ここに落とす。" rows="5"></textarea>
+    <div class="entry-meta">
+      <span class="entry-timestamp" id="entry-timestamp"></span>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap">
+        <button class="btn btn-ghost" id="btn-log-only">記録のみ</button>
+        <button class="btn btn-drift" id="btn-drift">漂流させる ↗</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="drift-response">
+    <div class="response-label">▸ 漂流の声 / Drift Echo</div>
+    <div id="drift-text"></div>
+  </div>
+
+  <div id="shed-panel">
+    <div class="section-label">脱皮の記録 / Shedding Log</div>
+    <div class="shed-controls">
+      <button class="btn btn-shed" id="btn-add-shed">＋ 脱皮を記録する</button>
+      <button class="btn btn-ghost" id="btn-clear-shed">完了済みを消す</button>
+    </div>
+    <div id="shed-list"></div>
+  </div>
+
+  <div id="notdo-panel">
+    <div class="section-label">やらないことリスト / Not-Do List</div>
+    <div class="notdo-add-zone">
+      <input type="text" class="notdo-input" id="notdo-input" placeholder="やらないと決めたことを、ここに封じる。"/>
+      <button class="btn btn-rust" id="btn-add-notdo">封じる</button>
+    </div>
+    <div id="notdo-list"></div>
+  </div>
+
+  <div id="drift-log">
+    <div class="section-label">漂流の軌跡 / Drift Trail</div>
+    <div id="log-list"></div>
+  </div>
+
+  <footer>
+    <div class="footer-text">漂流座標 — Drifting Coordinates<br>問題を解決しない。別の景色へ連れて行く。<br>Generated by The Samsara Engine</div>
+  </footer>
+</div>
+<div id="toast"></div>
+<script>
+/* ── STATE ── */
+const state = {
+  apiKey: '',
+  origin: null,
+  points: [],
+  sheddings: [],
+  notDos: [],
+  shedCount: 0,
+};
+
+/* ── UTILS ── */
+function nowStr() {
+  return new Date().toLocaleString('ja-JP',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+function uid() { return Math.random().toString(36).slice(2,9); }
+function distPt(a,b){ return Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2); }
+function fmtCoord(p){ return p?`(${(p.x*100).toFixed(1)}, ${(p.y*100).toFixed(1)})`:'—'; }
+
+function showToast(msg,ms=2400){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),ms);
+}
+
+function save(){
+  try{ localStorage.setItem('hyoryu_v3',JSON.stringify({
+    origin:state.origin,points:state.points,
+    sheddings:state.sheddings,notDos:state.notDos,shedCount:state.shedCount
+  }));}catch(e){}
+}
+
+function loadState(){
+  try{
+    const raw=localStorage.getItem('hyoryu_v3');
+    if(!raw)return;
+    const d=JSON.parse(raw);
+    if(d.origin)    state.origin=d.origin;
+    if(d.points)    state.points=d.points;
+    if(d.sheddings) state.sheddings=d.sheddings;
+    if(d.notDos)    state.notDos=d.notDos;
+    if(d.shedCount) state.shedCount=d.shedCount;
+  }catch(e){}
+  const savedKey=localStorage.getItem('hyoryu_apikey');
+  if(savedKey){
+    state.apiKey=savedKey;
+    document.getElementById('api-key-input').value=savedKey;
+    document.getElementById('api-status').className='api-status connected';
+    document.getElementById('api-status').textContent='● 接続済み';
+  }
+}
+
+/* ── PARTICLES ── */
+function initParticles(){
+  const field=document.getElementById('particle-field');
+  const colors=['rgba(200,146,42,','rgba(42,74,106,','rgba(90,138,90,'];
+  for(let i=0;i<28;i++){
+    const p=document.createElement('div');
+    p.className='particle';
+    const size=Math.random()*3+1;
+    const col=colors[Math.floor(Math.random()*colors.length)];
+    p.style.cssText=`width:${size}px;height:${size}px;left:${Math.random()*100}%;top:${Math.random()*100}%;background:${col}0.7)`;
+    p.style.setProperty('--dx',(Math.random()-0.5)*120+'px');
+    p.style.setProperty('--dy',(Math.random()-0.5)*120+'px');
+    p.style.animationDuration=(Math.random()*18+10)+'s';
+    p.style.animationDelay=(Math.random()*-20)+'s';
+    field.appendChild(p);
+  }
+}
+
+/* ── TIMESTAMP ── */
+function tickTimestamp(){
+  document.getElementById('entry-timestamp').textContent=nowStr();
+}
+
+/* ── API KEY 登録 ── */
+function registerApiKey(){
+  const val=document.getElementById('api-key-input').value.trim();
+  const statusEl=document.getElementById('api-status');
+  if(!val||!val.startsWith('sk-ant-')){
+    statusEl.className='api-status disconnected';
+    statusEl.textContent='● キー形式エラー';
+    showToast('sk-ant- で始まるキーを入力してください');
+    return;
+  }
+  state.apiKey=val;
+  localStorage.setItem('hyoryu_apikey',val);
+  statusEl.className='api-status connected';
+  statusEl.textContent='● 接続済み';
+  showToast('APIキーを登録しました。漂流できます。');
+}
+
+/* ── CANVAS ── */
+function renderCanvas(){
+  const svg=document.getElementById('coord-svg');
+  const canvas=document.getElementById('coordinate-canvas');
+  const W=canvas.offsetWidth||800;
+  const H=canvas.offsetHeight||340;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  let html='';
+  html+=`<line x1="${W/2}" y1="0" x2="${W/2}" y2="${H}" stroke="rgba(74,69,64,.25)" stroke-width="1"/>`;
+  html+=`<line x1="0" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="rgba(74,69,64,.25)" stroke-width="1"/>`;
+  for(let i=1;i<4;i++){
+    html+=`<line x1="${W*i/4}" y1="0" x2="${W*i/4}" y2="${H}" stroke="rgba(74,69,64,.07)" stroke-width="1" stroke-dasharray="3,6"/>`;
+    html+=`<line x1="0" y1="${H*i/4}" x2="${W}" y2="${H*i/4}" stroke="rgba(74,69,64,.07)" stroke-width="1" stroke-dasharray="3,6"/>`;
+  }
+  if(state.points.length===0){svg.innerHTML=html;return;}
+  if(state.points.length>1){
+    const d=state.points.map((p,i)=>`${i===0?'M':'L'} ${p.x*W} ${p.y*H}`).join(' ');
+    html+=`<path d="${d}" fill="none" stroke="rgba(42,74,106,.5)" stroke-width="1.5" stroke-dasharray="4,4"/>`;
+  }
+  state.points.forEach((p,i)=>{
+    const px=p.x*W,py=p.y*H;
+    const isOrigin=i===0,isLast=i===state.points.length-1;
+    if(isOrigin){
+      html+=`<circle cx="${px}" cy="${py}" r="8" fill="none" stroke="rgba(200,146,42,.6)" stroke-width="1.5"/>`;
+      html+=`<circle cx="${px}" cy="${py}" r="3" fill="rgba(200,146,42,.9)"/>`;
+    } else if(isLast&&state.points.length>1){
+      html+=`<circle cx="${px}" cy="${py}" r="6" fill="none" stroke="rgba(42,74,106,.8)" stroke-width="1.5"/>`;
+      html+=`<circle cx="${px}" cy="${py}" r="2.5" fill="rgba(42,74,106,1)"/>`;
+      html+=`<circle cx="${px}" cy="${py}" r="6" fill="none" stroke="rgba(42,74,106,.3)" stroke-width="1"><animate attributeName="r" values="6;20" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values=".5;0" dur="2s" repeatCount="indefinite"/></circle>`;
+    } else {
+      html+=`<circle cx="${px}" cy="${py}" r="2" fill="rgba(154,144,128,.5)"/>`;
+    }
+  });
+  svg.innerHTML=html;
+}
+
+/* ── STATS ── */
+function updateStats(){
+  const origin=state.points[0]||null;
+  const current=state.points[state.points.length-1]||null;
+  document.getElementById('coord-origin').textContent=fmtCoord(origin);
+  document.getElementById('coord-current').textContent=fmtCoord(current);
+  let total=0;
+  for(let i=1;i<state.points.length;i++) total+=distPt(state.points[i-1],state.points[i]);
+  document.getElementById('coord-distance').textContent=(total*100).toFixed(2);
+  document.getElementById('coord-sheddings').textContent=state.shedCount;
+}
+
+/* ── ADD POINT ── */
+function addPoint(text){
+  const hash=Array.from(text).reduce((a,c)=>a+c.charCodeAt(0),0);
+  const len=text.length;
+  const x=((hash*7+len*13)%89+5)/100;
+  const y=((hash*3+len*17)%79+10)/100;
+  const pt={x,y,text:text.slice(0,80),time:nowStr(),coord:fmtCoord({x,y})};
+  state.points.push(pt);
+  if(!state.origin) state.origin=pt;
+  save();
+  renderCanvas();
+  updateStats();
+}
+
+/* ── LOG ENTRY ── */
+function addLogEntry(text,coord){
+  const list=document.getElementById('log-list');
+  const el=document.createElement('div');
+  el.className='log-entry';
+  el.innerHTML=`
+    <div class="log-entry-time">${nowStr()}</div>
+    <div class="log-entry-text">${text.slice(0,120)}${text.length>120?'…':''}</div>
+    <div class="log-entry-coord">座標 ${coord}</div>`;
+  list.insertBefore(el,list.firstChild);
+}
+
+/* ── CLAUDE API CALL ── */
+async function callClaude(thought){
+  const systemPrompt=`あなたは「漂流座標」という思考装置の声です。
+ユーザーが投げ込んだ思考に対して、答えを出さず、解決もせず、ただ「別の景色」へ連れて行くことだけを目的とします。
+
+ルール：
+- 問題を解決しない
+- アドバイスをしない
+- 評価・判断をしない
+- 問いかけるか、詩的な観察をするか、全く別の角度から光を当てる
+- 100〜150字程度の日本語で応答する
+- 答えではなく、漂流を促す言葉を選ぶ`;
+
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key':state.apiKey,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body:JSON.stringify({
+      model:'claude-haiku-4-5',
+      max_tokens:300,
+      system:systemPrompt,
+      messages:[{role:'user',content:thought}]
+    })
+  });
+
+  if(!res.ok){
+    const err=await res.json().catch(()=>({}));
+    throw new Error(err.error?.message||`HTTP ${res.status}`);
+  }
+  const data=await res.json();
+  return data.content[0].text;
+}
+
+/* ── DRIFT BUTTON ── */
+async function onDrift(){
+  const input=document.getElementById('thought-input');
+  const text=input.value.trim();
+  if(!text){ showToast('思考を入力してください'); return; }
+  if(!state.apiKey){ showToast('先にAPIキーを登録してください'); return; }
+
+  const btn=document.getElementById('btn-drift');
+  const responseEl=document.getElementById('drift-response');
+  const driftText=document.getElementById('drift-text');
+
+  btn.disabled=true;
+  responseEl.classList.add('visible');
+  driftText.innerHTML='<div class="loading-wave"><span></span><span></span><span></span><span></span><span></span></div>';
+
+  try{
+    const reply=await callClaude(text);
+    // タイプライター表示
+    driftText.textContent='';
+    const cursor=document.createElement('span');
+    cursor.className='typing-cursor';
+    driftText.appendChild(cursor);
+    let i=0;
+    const timer=setInterval(()=>{
+      if(i<reply.length){
+        driftText.insertBefore(document.createTextNode(reply[i]),cursor);
+        i++;
+      } else {
+        clearInterval(timer);
+        cursor.remove();
+      }
+    },28);
+
+    addPoint(text);
+    addLogEntry(text,fmtCoord(state.points[state.points.length-1]));
+    input.value='';
+  } catch(e){
+    driftText.textContent='エラー: '+e.message;
+    showToast('APIエラー: '+e.message,4000);
+  } finally {
+    btn.disabled=false;
+  }
+}
+
+/* ── LOG ONLY ── */
+function onLogOnly(){
+  const input=document.getElementById('thought-input');
+  const text=input.value.trim();
+  if(!text){ showToast('思考を入力してください'); return; }
+  addPoint(text);
+  addLogEntry(text,fmtCoord(state.points[state.points.length-1]));
+  input.value='';
+  showToast('記録しました。座標が更新されました。');
+}
+
+/* ── SHEDDING ── */
+function renderShedList(){
+  const list=document.getElementById('shed-list');
+  list.innerHTML='';
+  state.sheddings.forEach(s=>{
+    const el=document.createElement('div');
+    el.className='shed-item'+(s.done?' shed-done':'');
+    el.innerHTML=`
+      <div class="shed-checkbox${s.done?' checked':''}" data-id="${s.id}">${s.done?'✓':''}</div>
+      <div class="shed-text-wrap">
+        <div class="shed-text">${s.text}</div>
+        <div class="shed-meta">${s.time}</div>
+      </div>
+      <button class="shed-delete" data-id="${s.id}">✕</button>`;
+    list.appendChild(el);
+  });
+}
+
+function addShedding(){
+  const text=prompt('脱皮した内容を記録する：\n（手放したこと、変わったこと、気づいたこと）');
+  if(!text||!text.trim()) return;
+  state.sheddings.unshift({id:uid(),text:text.trim(),done:false,time:nowStr()});
+  state.shedCount++;
+  document.getElementById('coord-sheddings').textContent=state.shedCount;
+  save();
+  renderShedList();
+  showToast('脱皮を記録しました。');
+}
+
+function toggleShed(id){
+  const s=state.sheddings.find(x=>x.id===id);
+  if(s){ s.done=!s.done; save(); renderShedList(); }
+}
+
+function deleteShed(id){
+  state.sheddings=state.sheddings.filter(x=>x.id!==id);
+  save(); renderShedList();
+}
+
+function clearDoneShed(){
+  state.sheddings=state.sheddings.filter(x=>!x.done);
+  save(); renderShedList();
+  showToast('完了済みを削除しました。');
+}
+
+/* ── NOT-DO LIST ── */
+function renderNotDoList(){
+  const list=document.getElementById('notdo-list');
+  list.innerHTML='';
+  state.notDos.forEach(n=>{
+    const el=document.createElement('div');
+    el.className='notdo-item';
+    el.innerHTML=`
+      <span class="notdo-icon">⛔</span>
+      <span class="notdo-text">${n.text}</span>
+      <span class="notdo-reminder">封印中</span>
+      <button class="notdo-delete" data-id="${n.id}">✕</button>`;
+    list.appendChild(el);
+  });
+}
+
+function addNotDo(){
+  const input=document.getElementById('notdo-input');
+  const text=input.value.trim();
+  if(!text) return;
+  state.notDos.unshift({id:uid(),text,time:nowStr()});
+  input.value='';
+  save();
+  renderNotDoList();
+  showToast('封じました。これはやらない。');
+}
+
+function deleteNotDo(id){
+  state.notDos=state.notDos.filter(x=>x.id!==id);
+  save(); renderNotDoList();
+}
+
+/* ── EVENT LISTENERS ── */
+function bindEvents(){
+  // APIキー登録
+  document.getElementById('btn-register').addEventListener('click',registerApiKey);
+  document.getElementById('api-key-input').addEventListener('keydown',e=>{
+    if(e.key==='Enter') registerApiKey();
+  });
+
+  // 漂流 / 記録のみ
+  document.getElementById('btn-drift').addEventListener('click',onDrift);
+  document.getElementById('btn-log-only').addEventListener('click',onLogOnly);
+
+  // Ctrl+Enter でも漂流
+  document.getElementById('thought-input').addEventListener('keydown',e=>{
+    if((e.ctrlKey||e.metaKey)&&e.key==='Enter') onDrift();
+  });
+
+  // 脱皮
+  document.getElementById('btn-add-shed').addEventListener('click',addShedding);
+  document.getElementById('btn-clear-shed').addEventListener('click',clearDoneShed);
+  document.getElementById('shed-list').addEventListener('click',e=>{
+    const cb=e.target.closest('.shed-checkbox');
+    const del=e.target.closest('.shed-delete');
+    if(cb) toggleShed(cb.dataset.id);
+    if(del) deleteShed(del.dataset.id);
+  });
+
+  // やらないことリスト
+  document.getElementById('btn-add-notdo').addEventListener('click',addNotDo);
+  document.getElementById('notdo-input').addEventListener('keydown',e=>{
+    if(e.key==='Enter') addNotDo();
+  });
+  document.getElementById('notdo-list').addEventListener('click',e=>{
+    const del=e.target.closest('.notdo-delete');
+    if(del) deleteNotDo(del.dataset.id);
+  });
+
+  // リサイズ時にキャンバス再描画
+  window.addEventListener('resize',()=>{ renderCanvas(); });
+}
+
+/* ── INIT ── */
+function init(){
+  loadState();
+  initParticles();
+  tickTimestamp();
+  setInterval(tickTimestamp,30000);
+  renderCanvas();
+  updateStats();
+  renderShedList();
+  renderNotDoList();
+  bindEvents();
+
+  // 保存済みログを復元表示
+  const list=document.getElementById('log-list');
+  [...state.points].reverse().forEach(p=>{
+    const el=document.createElement('div');
+    el.className='log-entry';
+    el.innerHTML=`
+      <div class="log-entry-time">${p.time}</div>
+      <div class="log-entry-text">${p.text}</div>
+      <div class="log-entry-coord">座標 ${p.coord}</div>`;
+    list.appendChild(el);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
