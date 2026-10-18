@@ -239,11 +239,12 @@
 
     <h4>ゲームとしての設定（統計ではないもの）</h4>
     <table>
-      <tr><td>生活費</td><td>基本200万円＋住居50万円（30〜64歳）＋子育て100万円（子どもがいる22年間）を賃金水準で調整。子どもがいる場合はパートナーと分担し6割を負担。収入が増えた分の55%は生活水準の上昇に使う</td></tr>
+      <tr><td>生活費</td><td>基本200万円＋住居50万円（30〜64歳）＋子育て100万円（子どもがいる22年間）を賃金水準で調整。パートナーがいる場合は分担し6割を負担（パートナーがいなければ、子どもがいても8.5割）。収入が増えた分の55%は生活水準の上昇に使う</td></tr>
       <tr><td>年金</td><td>100万円＋現役時代の平均年収（800万円で頭打ち）×18%</td></tr>
       <tr><td>昇進・リストラ・IPOなど</td><td>時代・企業規模・スキル・HPなどから決まる確率。一部は統計（女性管理職比率の推移など）を参考にした係数</td></tr>
       <tr><td>寄与率</td><td>22〜52歳（2021年以降に社会に出た場合は短縮）の実質手取りを物差しに、社会に出る年・乱数・選び方をそれぞれ変えたときのばらつき（標準偏差）の比</td></tr>
       <tr><td>出産</td><td>子どもは1人、30歳時点の分岐として単純化</td></tr>
+      <tr><td>パートナー・世帯</td><td>28歳の分岐で選ぶ（同い年とみなす）。生活費はひとり分の1.5倍とし、自分が6割を負担、残りはパートナーの収入で賄う。パートナーの収入は同年代の中堅企業の水準を基準に、共働き1.0倍・自分が主に稼ぐ0.35倍・パートナーが主に稼ぐ1.5倍とし、65歳からは年金のみ。世帯の収支は最終資産に反映するが、「手取り」「寄与率」「同期との比較」は本人の手取りだけで計算する。ひとりで子どもを持つ場合の負担は8.5割、仕事を離れて育児に専念する道は選べない</td></tr>
     </table>
     <button class="primary" style="width: 100%; margin-top: 16px;" onclick="$('sources').style.display='none'">閉じる</button>
   </div>
@@ -592,8 +593,30 @@ const takeHome = s => Math.round(Math.max(0, s.income) * taxRate(s.year) + s.pen
 // 生活費：基本＋住居費（30〜64歳）＋子育て期（35〜54歳）を賃金水準で調整、物価上昇分、収入に応じた生活水準の上昇
 // 子育て費は子どもがいる22年間だけ。子どもがいる場合はパートナーと家計を分担するとみなし、基本・住居・子育て費の6割を負担
 const kidYears = s => s.kidYear ? s.year - s.kidYear : -1;
-const livingCost = s => Math.round((s.livingBase + (s.age >= 30 && s.age < 65 ? 50 : 0) + (kidYears(s) >= 0 && kidYears(s) < 22 ? 100 : 0)) * avgIdx(s.year) * (s.kidYear ? 0.6 : 1))
+// ふたり世帯の生活費は、ひとり分の1.5倍（住居などを分け合うため）。そのうち自分が6割、パートナーが9割相当（基準の1.5倍−0.6倍）を負担する。パートナーがいない場合、子どもがいても全てを自分で担うわけではないが（実家・公的支援）、負担は重くなる（8.5割）
+const livingBaseCost = s => Math.round((s.livingBase + (s.age >= 30 && s.age < 65 ? 50 : 0) + (kidYears(s) >= 0 && kidYears(s) < 22 ? 100 : 0)) * avgIdx(s.year));
+const COUPLE_COST = 1.5;
+const costShare = s => s.partner ? 0.6 : (s.kidYear ? 0.85 : 1);
+const livingCost = s => Math.round(livingBaseCost(s) * costShare(s))
   + s.extraLiving + Math.round(Math.max(0, takeHome(s) - 280 * avgIdx(s.year)) * 0.55);
+// パートナー（同い年とみなす）：収入は同年代の中堅企業の水準を基準に、働き方で係数を変える。65歳からは年金のみ
+const PARTNER_MODES = {
+  dual:    { k: 1.0, pen: 130, label: '共働き' },
+  me:      { k: 0.35, pen: 80, label: '自分が主に稼ぐ' },
+  partner: { k: 1.5, pen: 170, label: 'パートナーが主に稼ぐ' }
+};
+const partnerTH = s => {
+  if (!s.partner) return 0;
+  const m = PARTNER_MODES[s.partner];
+  if (s.age >= 65) return Math.round(m.pen * avgIdx(s.year) * 0.9);
+  return Math.round(stdIncome(s.year, s.age, '中堅') * m.k * taxRate(s.year));
+};
+// 世帯としての収支のうち、パートナー側の余り（自分の側の計算と同じ式。家計の負担分と生活水準の上昇を差し引く）
+const partnerNet = s => {
+  if (!s.partner) return 0;
+  const p = partnerTH(s);
+  return p - Math.round(livingBaseCost(s) * (COUPLE_COST - costShare(s))) - Math.round(Math.max(0, p - 280 * avgIdx(s.year)) * 0.55);
+};
 const L = (s, text, type = '') => s.log.push({ year: s.year, text, type });
 const yen = v => `${v >= 0 ? '+' : ''}${v}万円`;
 
@@ -904,6 +927,25 @@ const DECISIONS = {
   }
 };
 
+// 28歳で迎える分岐：誰と暮らすか。ここでは「パートナーがいるか」と「収入をどう分担するか」だけを選ぶ（世帯の収支と、その後の分岐に効く）
+function partnerDecision(s) {
+  return {
+    id: 'partner', year: s.year,
+    title: `${s.year}年（${s.age}歳）：誰と、どう暮らすか`,
+    desc: "20代後半。生活を共にするパートナーがいるか、いるなら収入をどう分け合うか。ここでは、そこだけを選びます。（結婚の形は問いません）",
+    options: [
+      { key: 'single', text: "ひとりで暮らし続ける", short: "ひとりで暮らし続けた", tag: 'adapt',
+        effect: s => { ch(s, 'choice', 'autonomy', 5); L(s, "ひとりの暮らしを続けることにした。家計はすべて自分で支える。", 'choice'); }},
+      { key: 'dual', text: "パートナーと暮らす（共働き）", short: "パートナーと共働きで暮らした", tag: 'stable',
+        effect: s => { s.partner = 'dual'; ch(s, 'choice', 'hp', 3); L(s, "パートナーと暮らし始めた。ふたりとも働き、家計を分け合う。", 'choice'); }},
+      { key: 'me', text: "パートナーと暮らす（自分が主に稼ぐ）", short: "自分が主に稼ぐ形で暮らした", tag: 'earn',
+        effect: s => { s.partner = 'me'; ch(s, 'choice', 'workHours', 1); ch(s, 'choice', 'hp', -2); L(s, "パートナーと暮らし始めた。相手の収入は小さく、家計の柱は自分になる。", 'choice'); }},
+      { key: 'partner', text: "パートナーと暮らす（パートナーが主に稼ぐ）", short: "パートナーが主に稼ぐ形で暮らした", tag: 'care',
+        effect: s => { s.partner = 'partner'; ch(s, 'choice', 'workHours', -1); ch(s, 'choice', 'hp', 3); L(s, "パートナーと暮らし始めた。家計の柱は相手で、自分は仕事に使う時間を少し減らせた。", 'choice'); }}
+    ]
+  };
+}
+
 // 30歳で迎える分岐：子どもを持つか。結果は性別と時代で大きく変わる
 function startBreak(s, src, years) {
   s.onBreak = true; s.breakUntil = s.year + years;
@@ -940,7 +982,7 @@ function lifeDecision(s) {
   const female = s.gender === '女性';
   const cr = continueRate(s.year), ml = maleLeaveRate(s.year);
   const working = !s.retired && !s.onBreak && s.income > 0;
-  const opts = [];
+  let opts = [];
   if (working) {
     opts.push({ key: 'kid-work', text: "子どもを持ち、仕事を続ける", short: "子どもを持ち、仕事を続けた", tag: 'earn',
       effect: s => {
@@ -960,8 +1002,8 @@ function lifeDecision(s) {
             L(s, `第1子が生まれた。両立の壁は厚く、仕事を辞めることになった。（この頃、出産後も働き続けた女性は約${pctText(continueRate(s.year))}）`, 'warn');
           }
         } else {
-          haveChild(s, 1, 'choice');
-          L(s, `第1子が生まれた。育児の多くはパートナーが担い、仕事中心の生活は変わらなかった。（この年の男性の育休取得率は約${pctText(maleLeaveRate(s.year))}）`, 'choice');
+          haveChild(s, s.partner ? 1 : 3, 'choice');
+          L(s, `第1子が生まれた。${s.partner ? '育児の多くはパートナーが担い、仕事中心の生活は変わらなかった。' : '育児をひとりで担いながら、仕事を続けた。'}（この年の男性の育休取得率は約${pctText(maleLeaveRate(s.year))}）`, 'choice');
         }
       }});
     opts.push({ key: 'kid-care', text: female ? "子どもを持ち、いったん仕事を離れて育児に専念する" : "子どもを持ち、育休を取って育児を担う",
@@ -985,6 +1027,8 @@ function lifeDecision(s) {
     opts.push({ key: 'kid-work', text: "子どもを持つ", short: "子どもを持った", tag: 'care',
       effect: s => { haveChild(s, 3, 'choice'); L(s, "第1子が生まれた。", 'choice'); }});
   }
+  // パートナーがいない場合、仕事を離れて育児に専念する道は選べない（家計を支える人がいない）
+  if (female && !s.partner) opts = opts.filter(o => o.key !== 'kid-care');
   opts.push({ key: 'nokid', text: "子どもは持たない（今は考えない）", short: "子どもを持たなかった", tag: 'stable',
     effect: s => { L(s, "子どもは持たない人生を選んだ。", 'choice'); }});
   return {
@@ -1129,7 +1173,7 @@ function newWorld(seed, startYear, genderArg) {
     adaptability: ind.adapt, autonomy: size === '非正規' ? 30 : 40,
     workHours: ind.work, careHours: 2, sleepHours: 7, livingBase: 200, extraLiving: 0,
     retired: false, lowWarned: false, ended: false,
-    rank: '', onLadder: true, venture: false, sidegig: false, independent: false, careEnds: [], tempCuts: [], payPremium, gaishi: null,
+    partner: null, rank: '', onLadder: true, venture: false, sidegig: false, independent: false, careEnds: [], tempCuts: [], payPremium, gaishi: null,
     impact: { era: 0, choice: 0, routine: 0 },
     choices: [], answers: [], queue: [], log: [], series: [],
     stats: { freeSum: 0, years: 0, hpMin: 85, deficitYears: 0, burnout: 0, layoffs: 0, lifeTakeHome: 0, incomeSum: 0, workYears: 0, peakIncome: income, over1000: 0, promotions: [] }
@@ -1218,6 +1262,7 @@ function advance(s) {
 
   if (era && era.boundary) s.queue.push({ kind: 'boundary' });
   if (QUESTIONS[s.age]) s.queue.push({ kind: 'question', age: s.age, ...QUESTIONS[s.age] });
+  if (s.age === 28) s.queue.push({ kind: 'decision', dec: partnerDecision(s) });
   if (s.age === 30) s.queue.push({ kind: 'decision', dec: lifeDecision(s) });
   const decFn = DECISIONS[s.year];
   const dec = decFn && (!s.onBreak || s.year === 2027 || s.year === 2035) ? decFn(s) : null;
@@ -1258,13 +1303,13 @@ function annualTick(s) {
 
   const th = takeHome(s);
   st.lifeTakeHome += th;
-  const net = th - livingCost(s);
+  const net = th - livingCost(s) + partnerNet(s);
   s.savings += net;
   if (net < 0) st.deficitYears++;
 }
 
 // 育児で仕事を離れている間は、仕事の分岐は出ない（出産・境界線・暮らしの分岐は出る）
-const decisionValid = (s, dec) => !s.onBreak || ['life', '2027', '2035'].includes(dec.id || String(dec.year));
+const decisionValid = (s, dec) => !s.onBreak || ['life', 'partner', '2027', '2035'].includes(dec.id || String(dec.year));
 
 /* ---------- ヘッドレス実行（パラレルワールド用） ---------- */
 function simulateWith(seed, startYear, chooser, gender) {
@@ -1813,6 +1858,7 @@ function finish() {
         <div class="end-stat"><div class="k">最高年収</div><div class="v">${st.peakIncome.toLocaleString()}万円</div></div>
         <div class="end-stat"><div class="k">最高の役職</div><div class="v">${st.promotions.length ? st.promotions[st.promotions.length - 1].rank : '—'}</div></div>
       </div>
+      ${s.partner ? `<div class="note" style="margin-top:8px">パートナーと暮らした（${PARTNER_MODES[s.partner].label}）。最終資産には、パートナーの収入から家計の負担分を引いた余りも含みます。手取りや寄与率の物差しは、あなた自身の手取りだけです。</div>` : ''}
       ${st.over1000 > 0 ? `<div class="note" style="margin-top:8px">年収1,000万円（2025年の賃金水準換算）を超えた年：${st.over1000}年。給与所得者のうち年収1,000万円超は、男性で約1割、女性で約2%（国税庁「民間給与実態統計調査」令和6年分）。</div>` : ''}
     </div>
     ${answersHtml}
