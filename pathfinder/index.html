@@ -1859,7 +1859,7 @@ function finish() {
         <div class="end-stat"><div class="k">最高年収</div><div class="v">${st.peakIncome.toLocaleString()}万円</div></div>
         <div class="end-stat"><div class="k">最高の役職</div><div class="v">${st.promotions.length ? st.promotions[st.promotions.length - 1].rank : '—'}</div></div>
       </div>
-      <div class="note" style="margin-top:8px">「22〜${WINDOW_END_AGE}歳の実質手取り」は、2025年の賃金水準に換算した合計です。どの世代も同じ30年間で測っているので、他の世代のカードとも比べられます。</div>
+      <div class="note" style="margin-top:8px">「22〜${WINDOW_END_AGE}歳の実質手取り」は、2025年の賃金水準に換算した合計です。${WINDOW_END_AGE === 52 ? '2020年卒までの世代は同じ30年間で測っているので、互いに比べられます。' : '2021年卒以降は2050年までに52歳に届かないため、' + (WINDOW_END_AGE - 22) + '年間で測っています。期間が違う世代とは、単純には比べられません（年齢が上がるほど給与は上がるため、短い期間は低めに出ます）。'}</div>
       ${s.partner ? `<div class="note" style="margin-top:8px">パートナーと暮らした（${PARTNER_MODES[s.partner].label}）。最終資産には、パートナーの収入から家計の負担分を引いた余りも含みます。手取りや寄与率の物差しは、あなた自身の手取りだけです。</div>` : ''}
       ${st.over1000 > 0 ? `<div class="note" style="margin-top:8px">年収1,000万円（2025年の賃金水準換算）を超えた年：${st.over1000}年。給与所得者のうち年収1,000万円超は、男性で約1割、女性で約2%（国税庁「民間給与実態統計調査」令和6年分）。</div>` : ''}
     </div>
