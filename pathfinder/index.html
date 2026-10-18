@@ -1763,6 +1763,7 @@ function finish() {
       <div class="end-list" style="margin-top:6px">${peerRows}</div>
       <div class="note">「同期」は、同じ年・同じ性別で社会に出て、配属・出来事・選び方がそれぞれ違うモデル上の${pc.n}人です。実際の統計分布そのものではなく、このシミュレーションの中での相対的な位置です。</div>
     </div>`;
+  lastEnding.peerTop = pc.top;
   const pws = parallelWorlds();
   const pwHtml = pws.length ? pws.map(p => {
     const { gain, loss } = diffLines(p.diff);
@@ -1888,10 +1889,16 @@ function drawShareCard() {
   stats.forEach(([k, v], i) => {
     const sx = P + i * (bw / 3);
     ctx.fillStyle = '#8b949e'; ctx.font = font(26); ctx.fillText(k, sx, y);
-    ctx.fillStyle = '#ffffff'; ctx.font = font(42, 700); ctx.fillText(v, sx, y + 56);
+    // 数字は欧文フォントを先頭にして、小数点の字間が開かないようにする
+    ctx.fillStyle = '#ffffff'; ctx.font = `700 42px "Helvetica Neue", Arial, "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif`; ctx.fillText(v, sx, y + 56);
   });
+  // 同期の中での位置
+  if (c.peerTop) {
+    ctx.fillStyle = '#c9d1d9'; ctx.font = font(32, 600);
+    ctx.fillText(`同期入社者の中で　上位${c.peerTop}%（22〜${WINDOW_END_AGE}歳の手取り）`, P, y + 128);
+  }
   // 選んだ道
-  y += 140;
+  y += c.peerTop ? 200 : 140;
   ctx.fillStyle = '#8b949e'; ctx.font = font(28); ctx.fillText('選んだ道', P, y);
   ctx.font = font(30); ctx.fillStyle = '#c9d1d9';
   s.choices.slice(0, 5).forEach((ch, i) => ctx.fillText(`${ch.year}　${ch.short}`, P, y + 52 + i * 46));
@@ -1900,8 +1907,8 @@ function drawShareCard() {
   const memo = ($('memorial') && $('memorial').value.trim()) || '';
   if (memo) {
     ctx.fillStyle = '#ffffff'; ctx.font = font(44, 700);
-    wrapText(ctx, `“${memo}”`, bw).slice(0, 3).forEach((ln, i) => ctx.fillText(ln, P, y + i * 60));
-    y += Math.min(3, wrapText(ctx, `“${memo}”`, bw).length) * 60 + 20;
+    wrapText(ctx, `“${memo}”`, bw).slice(0, 2).forEach((ln, i) => ctx.fillText(ln, P, y + i * 60));
+    y += Math.min(2, wrapText(ctx, `“${memo}”`, bw).length) * 60 + 20;
   }
   // 問い
   ctx.fillStyle = '#bc8cff'; ctx.font = font(30);
