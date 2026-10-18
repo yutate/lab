@@ -1745,7 +1745,7 @@ function diffLines(d) {
   const gain = [], loss = [];
   const add = (cond, better, text) => { if (cond) (better ? gain : loss).push(text); };
   const sgn = v => (v >= 0 ? '+' : '') + v;
-  add(Math.abs(d.lifeTakeHome) >= 50, d.lifeTakeHome > 0, `生涯手取り ${sgn(Math.round(d.lifeTakeHome))}万円`);
+  add(Math.abs(d.lifeTakeHome) >= 50, d.lifeTakeHome > 0, `手取りの合計（2050年まで） ${sgn(Math.round(d.lifeTakeHome))}万円`);
   add(Math.abs(d.savings) >= 50, d.savings > 0, `最終資産 ${sgn(Math.round(d.savings))}万円`);
   add(Math.abs(d.avgFree) >= 0.2, d.avgFree > 0, `平均の余白 ${sgn(Math.round(d.avgFree * 10) / 10)}h/日`);
   add(Math.abs(d.hpMin) >= 3, d.hpMin > 0, `最低HP ${sgn(d.hpMin)}%`);
@@ -1809,6 +1809,7 @@ function finish() {
       <div class="note">「同期」は、同じ年・同じ性別で社会に出て、配属・出来事・選び方がそれぞれ違うモデル上の${pc.n}人です。実際の統計分布そのものではなく、このシミュレーションの中での相対的な位置です。</div>
     </div>`;
   lastEnding.peerTop = pc.top;
+  lastEnding.real = at.ownReal; lastEnding.windowEnd = WINDOW_END_AGE;
   const pws = parallelWorlds();
   const pwHtml = pws.length ? pws.map(p => {
     const { gain, loss } = diffLines(p.diff);
@@ -1849,7 +1850,7 @@ function finish() {
     </div>
     <div class="end-section">
       <div class="end-grid">
-        <div class="end-stat"><div class="k">生涯手取り</div><div class="v">${st.lifeTakeHome.toLocaleString()}万円</div></div>
+        <div class="end-stat"><div class="k">22〜${WINDOW_END_AGE}歳の実質手取り</div><div class="v">${fmtMan(at.ownReal)}</div></div>
         <div class="end-stat"><div class="k">最終資産</div><div class="v ${s.savings < 0 ? 'neg' : ''}">${s.savings.toLocaleString()}万円</div></div>
         <div class="end-stat"><div class="k">平均の余白</div><div class="v">${(st.freeSum / Math.max(1, st.years)).toFixed(1)}h / 日</div></div>
         <div class="end-stat"><div class="k">最終の自律度</div><div class="v">${s.autonomy}</div></div>
@@ -1858,6 +1859,7 @@ function finish() {
         <div class="end-stat"><div class="k">最高年収</div><div class="v">${st.peakIncome.toLocaleString()}万円</div></div>
         <div class="end-stat"><div class="k">最高の役職</div><div class="v">${st.promotions.length ? st.promotions[st.promotions.length - 1].rank : '—'}</div></div>
       </div>
+      <div class="note" style="margin-top:8px">「22〜${WINDOW_END_AGE}歳の実質手取り」は、2025年の賃金水準に換算した合計です。どの世代も同じ30年間で測っているので、他の世代のカードとも比べられます。</div>
       ${s.partner ? `<div class="note" style="margin-top:8px">パートナーと暮らした（${PARTNER_MODES[s.partner].label}）。最終資産には、パートナーの収入から家計の負担分を引いた余りも含みます。手取りや寄与率の物差しは、あなた自身の手取りだけです。</div>` : ''}
       ${st.over1000 > 0 ? `<div class="note" style="margin-top:8px">年収1,000万円（2025年の賃金水準換算）を超えた年：${st.over1000}年。給与所得者のうち年収1,000万円超は、男性で約1割、女性で約2%（国税庁「民間給与実態統計調査」令和6年分）。</div>` : ''}
     </div>
@@ -1931,7 +1933,7 @@ function drawShareCard() {
   parts.forEach(([lab, pct, col]) => { ctx.fillStyle = col; ctx.fillText(`${lab} ${pct}%`, x, y); x += 300; });
   // 数字
   y += 90;
-  const stats = [['生涯手取り', fmtMan(s.stats.lifeTakeHome)], ['最高年収', `${s.stats.peakIncome.toLocaleString()}万円`], ['平均の余白', `${(s.stats.freeSum / Math.max(1, s.stats.years)).toFixed(1)}h/日`]];
+  const stats = [[`22〜${c.windowEnd}歳の実質手取り`, fmtMan(c.real)], ['最高年収', `${s.stats.peakIncome.toLocaleString()}万円`], ['平均の余白', `${(s.stats.freeSum / Math.max(1, s.stats.years)).toFixed(1)}h/日`]];
   stats.forEach(([k, v], i) => {
     const sx = P + i * (bw / 3);
     ctx.fillStyle = '#8b949e'; ctx.font = font(26); ctx.fillText(k, sx, y);
