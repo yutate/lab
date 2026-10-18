@@ -1947,8 +1947,11 @@ function drawShareCard() {
   y += c.peerTop ? 200 : 140;
   ctx.fillStyle = '#8b949e'; ctx.font = font(28); ctx.fillText('選んだ道', P, y);
   ctx.font = font(30); ctx.fillStyle = '#c9d1d9';
-  s.choices.slice(0, 5).forEach((ch, i) => ctx.fillText(`${ch.year}　${ch.short}`, P, y + 52 + i * 46));
-  y += 52 + Math.min(5, s.choices.length) * 46 + 30;
+  // 分岐が多いときは、最初と最後を含めて時間順に等間隔で5件を選ぶ（人生の流れが見えるように）
+  const n = s.choices.length;
+  const picked = n <= 5 ? s.choices : [0, 1, 2, 3, 4].map(i => s.choices[Math.round(i * (n - 1) / 4)]);
+  picked.forEach((ch, i) => ctx.fillText(`${ch.year}　${ch.short}`, P, y + 52 + i * 46));
+  y += 52 + picked.length * 46 + 30;
   // 一行メモリアル
   const memo = ($('memorial') && $('memorial').value.trim()) || '';
   if (memo) {
