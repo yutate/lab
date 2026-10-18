@@ -1,0 +1,1899 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pathfinder - 時代の波とキャリアの軌跡</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card-bg: #161b22;
+      --border: #30363d;
+      --text-main: #c9d1d9;
+      --text-muted: #8b949e;
+      --accent: #58a6ff;
+      --warn: #f85149;
+      --success: #3fb950;
+      --purple: #bc8cff;
+      --gold: #e3b341;
+      --era: #bc8cff;
+      --choice: #58a6ff;
+      --routine: #6e7681;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", sans-serif; }
+    body { background-color: var(--bg); color: var(--text-main); display: flex; justify-content: center; min-height: 100vh; padding: 16px; }
+    .container { width: 100%; max-width: 680px; display: flex; flex-direction: column; gap: 16px; }
+
+    header { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .year-info { font-size: 1.4rem; font-weight: bold; color: var(--accent); }
+    .sub-info { font-size: 0.8rem; color: var(--text-muted); }
+    .macro-info { font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; }
+    .era-tag { font-size: 0.85rem; padding: 4px 8px; background: rgba(88, 166, 255, 0.1); border-radius: 4px; border: 1px solid var(--accent); text-align: center; flex-shrink: 0; max-width: 45%; }
+
+    #log-container {
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; height: 300px; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px;
+    }
+    .log-item { font-size: 0.9rem; line-height: 1.5; border-left: 2px solid var(--border); padding-left: 10px; }
+    .log-item.event { border-left-color: var(--accent); color: #fff; }
+    .log-item.effect { border-left-color: var(--accent); color: var(--text-muted); font-size: 0.82rem; }
+    .log-item.choice { border-left-color: var(--purple); color: var(--gold); font-weight: bold; }
+    .log-item.question { border-left-color: var(--purple); color: var(--purple); }
+    .log-item.warn { border-left-color: var(--warn); color: var(--warn); }
+    .log-year { color: var(--text-muted); font-size: 0.8rem; margin-right: 6px; font-weight: normal; }
+
+    .dashboard { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 0.9rem; }
+    .metric-box { background: rgba(255,255,255,0.03); padding: 8px 12px; border-radius: 6px; }
+    .metric-title { color: var(--text-muted); font-size: 0.72rem; margin-bottom: 4px; }
+    .metric-val { font-size: 1.05rem; font-weight: bold; }
+    .metric-sub { font-size: 0.75rem; font-weight: normal; color: var(--text-muted); }
+    .neg, .low { color: var(--warn); }
+
+    .time-bar { height: 12px; display: flex; gap: 2px; border-radius: 6px; overflow: hidden; background: #21262d; margin-top: 6px; }
+    .tb-work { background: #f85149; }
+    .tb-sleep { background: #388bfd; }
+    .tb-care { background: #d29922; }
+    .tb-free { background: #3fb950; }
+    .time-legend { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px; font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; }
+
+    #decision-box {
+      background: #1c2128; border: 1px solid var(--purple); border-radius: 8px; padding: 16px; display: none; flex-direction: column; gap: 12px;
+    }
+    #decision-box.question { border-style: dashed; }
+    .btn-group { display: flex; flex-direction: column; gap: 8px; }
+    button {
+      background: #21262d; color: var(--text-main); border: 1px solid var(--border); padding: 10px 14px; border-radius: 6px; cursor: pointer; text-align: left; transition: all 0.2s; font-size: 0.85rem; line-height: 1.4;
+    }
+    button:hover:not(:disabled) { background: #30363d; border-color: var(--accent); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    button.primary { background: var(--accent); color: #000; font-weight: bold; text-align: center; }
+    button.primary:hover:not(:disabled) { opacity: 0.9; background: var(--accent); }
+    button.secondary { text-align: center; }
+    .run-row { display: flex; gap: 8px; }
+    .run-row .primary { flex: 1; }
+    .run-row .secondary { flex: 0 0 auto; white-space: nowrap; }
+    .link-btn { background: none; border: none; color: var(--text-muted); text-decoration: underline; text-align: center; font-size: 0.8rem; padding: 4px; }
+    .link-btn:hover:not(:disabled) { background: none; color: var(--accent); }
+    .src h4 { color: #fff; font-size: 0.9rem; margin: 14px 0 6px; }
+    .src li { margin: 0 0 6px 18px; font-size: 0.82rem; }
+    .src a { color: var(--accent); }
+    .src table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+    .src td { border-top: 1px solid var(--border); padding: 5px 4px; vertical-align: top; }
+    .src td:first-child { color: var(--text-muted); width: 38%; }
+    .memorial { width: 100%; background: #21262d; color: var(--text-main); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-size: 0.9rem; margin: 6px 0 8px; }
+    .card-img { width: 100%; border-radius: 6px; border: 1px solid var(--border); margin-top: 10px; display: none; }
+    .req { display: block; font-size: 0.75rem; color: var(--warn); margin-top: 2px; }
+
+    .overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.88); display: flex; justify-content: center; align-items: center; padding: 16px; z-index: 100;
+    }
+    .modal-content { background: var(--card-bg); border: 1px solid var(--border); padding: 22px; border-radius: 8px; max-width: 560px; width: 100%; max-height: 92vh; overflow-y: auto; line-height: 1.6; }
+    .modal-content h3 { color: var(--accent); margin-bottom: 12px; }
+    #modal-body { font-size: 0.9rem; margin-bottom: 16px; white-space: pre-line; }
+    .modal-actions { display: flex; flex-direction: column; gap: 8px; }
+
+    /* setup */
+    .setup-lead { font-size: 0.88rem; color: var(--text-muted); margin-bottom: 16px; }
+    .field-label { font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 6px; }
+    .year-row { display: flex; gap: 8px; margin-bottom: 6px; }
+    select { flex: 1; background: #21262d; color: var(--text-main); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-size: 0.95rem; }
+    .hint { font-size: 0.78rem; color: var(--text-muted); min-height: 3.9em; margin-bottom: 14px; white-space: pre-line; }
+
+    /* ending */
+    .end-section { margin-bottom: 18px; white-space: normal; }
+    .end-h { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px; letter-spacing: 0.04em; }
+    .end-type { font-size: 1.3rem; font-weight: bold; color: var(--gold); }
+    .attr-bar { display: flex; gap: 2px; height: 14px; border-radius: 4px; overflow: hidden; margin: 6px 0; }
+    .attr-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 0.8rem; }
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+    .note { font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; }
+    .chart { position: relative; margin-bottom: 8px; }
+    .chart svg { width: 100%; height: auto; display: block; touch-action: pan-y; }
+    .chart-title { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--text-muted); }
+    .chart-title b { color: var(--text-main); font-weight: 600; }
+    .tip { position: absolute; top: 0; pointer-events: none; background: #0d1117; border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px; font-size: 0.72rem; color: var(--text-main); white-space: nowrap; display: none; }
+    .end-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .end-stat { background: rgba(255,255,255,0.04); border-radius: 6px; padding: 8px 10px; }
+    .end-stat .k { font-size: 0.72rem; color: var(--text-muted); }
+    .end-stat .v { font-size: 1rem; font-weight: bold; }
+    .end-list { border-left: 2px solid var(--purple); padding-left: 10px; font-size: 0.85rem; }
+    .end-list div { margin-bottom: 4px; }
+    .pw { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; font-size: 0.85rem; }
+    .pw-title { color: #fff; font-weight: 600; margin-bottom: 6px; }
+    .pw-row { margin-top: 2px; }
+    .pw-row .lbl { color: var(--text-muted); margin-right: 4px; }
+    .end-question { background: rgba(188,140,255,0.1); border: 1px solid var(--purple); border-radius: 6px; padding: 12px; color: #fff; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div>
+      <div class="year-info" id="display-year"></div>
+      <div class="sub-info" id="display-job"></div>
+      <div class="macro-info" id="display-macro"></div>
+    </div>
+    <div class="era-tag" id="display-era"></div>
+  </header>
+
+  <div id="log-container"></div>
+
+  <div id="decision-box">
+    <div id="decision-title" style="font-weight: bold; color: #fff;"></div>
+    <div id="decision-desc" style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.4;"></div>
+    <div class="btn-group" id="decision-buttons"></div>
+  </div>
+
+  <div class="dashboard">
+    <div class="metrics-grid">
+      <div class="metric-box"><div class="metric-title">年収（額面 / 手取り概算）</div><div class="metric-val" id="val-income"></div></div>
+      <div class="metric-box"><div class="metric-title">累積資産</div><div class="metric-val" id="val-savings"></div></div>
+      <div class="metric-box"><div class="metric-title">精神・身体余力 (HP)</div><div class="metric-val" id="val-hp"></div></div>
+      <div class="metric-box"><div class="metric-title">人生の自律度</div><div class="metric-val" id="val-autonomy"></div></div>
+      <div class="metric-box"><div class="metric-title">専門スキル / 適応力</div><div class="metric-val" id="val-skill"></div></div>
+      <div class="metric-box"><div class="metric-title">年間生活費</div><div class="metric-val" id="val-living"></div></div>
+    </div>
+
+    <div>
+      <div style="font-size: 0.75rem; color: var(--text-muted);">1日の時間配分（24時間）— 余白が少ないとHPと自律度が削れ、学びの選択肢も閉じる</div>
+      <div class="time-bar">
+        <div class="tb-work" id="bar-work"></div>
+        <div class="tb-sleep" id="bar-sleep"></div>
+        <div class="tb-care" id="bar-care"></div>
+        <div class="tb-free" id="bar-free"></div>
+      </div>
+      <div class="time-legend">
+        <span>■ 労働: <span id="txt-work"></span></span>
+        <span>■ 睡眠: <span id="txt-sleep"></span></span>
+        <span>■ ケア/家事: <span id="txt-care"></span></span>
+        <span>■ 余白: <span id="txt-free" style="color: var(--success); font-weight: bold;"></span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="run-row">
+    <button id="btn-toggle-run" class="primary" onclick="toggleRun()">人生を進める（自動進行）</button>
+    <button id="btn-speed" class="secondary" onclick="cycleSpeed()">速度 ×1</button>
+  </div>
+  <button class="link-btn" onclick="showSources()">データと仮定について</button>
+</div>
+
+<div id="setup" class="overlay">
+  <div class="modal-content">
+    <h3>Pathfinder</h3>
+    <p class="setup-lead">時代の波とキャリアの軌跡。社会に出る年から2050年までを追体験します。業界・企業規模・文理はランダムに決まり、求人倍率の低い年ほど厳しい配属になりやすくなります。</p>
+    <label class="field-label" for="start-year">社会に出る年（22歳）</label>
+    <div class="year-row">
+      <select id="start-year" onchange="updateYearHint()"></select>
+    </div>
+    <label class="field-label" for="gender">性別</label>
+    <div class="year-row">
+      <select id="gender"><option value="">ランダム</option><option value="男性">男性</option><option value="女性">女性</option></select>
+    </div>
+    <div class="hint" id="year-hint"></div>
+    <button class="primary" style="width: 100%;" onclick="startFromSetup()">人生を始める</button>
+    <button class="link-btn" style="width: 100%; margin-top: 8px;" onclick="showSources()">データと仮定について</button>
+  </div>
+</div>
+
+<div id="sources" class="overlay" style="display: none; z-index: 200;">
+  <div class="modal-content src">
+    <h3>データと仮定について</h3>
+    <p style="font-size: 0.85rem; color: var(--text-muted);">Pathfinderは、公的統計などをもとにしたシミュレーションです。個人の将来を予測するものではありません。2026年までは実際の統計、2027年以降は下の仮定にもとづくシナリオです。</p>
+
+    <h4>賃金</h4>
+    <ul>
+      <li>年齢×企業規模・雇用形態・産業別の賃金：厚生労働省「<a href="https://www.mhlw.go.jp/toukei/itiran/roudou/chingin/kouzou/z2025/dl/04.pdf" target="_blank" rel="noopener">令和7年賃金構造基本統計調査</a>」第4表・<a href="https://www.mhlw.go.jp/toukei/itiran/roudou/chingin/kouzou/z2025/dl/06.pdf" target="_blank" rel="noopener">第6表</a></li>
+      <li>役職別の賃金（部長級627.2千円・課長級512.0千円など）と男女差：「令和6年賃金構造基本統計調査」（<a href="https://www.pacola.co.jp/%E4%BB%A4%E5%92%8C6%E5%B9%B4%E3%81%AE%E5%BD%B9%E8%81%B7%E5%88%A5%E8%B3%83%E9%87%91%E3%83%87%E3%83%BC%E3%82%BF%EF%BC%81%E9%83%A8%E9%95%B7%E7%B4%9A%E3%81%AE%E5%B9%B3%E5%9D%87%E8%B3%83%E9%87%91%E3%81%AF6/" target="_blank" rel="noopener">集計記事</a>）</li>
+      <li>年ごとの賃金水準：国税庁「民間給与実態統計調査」の平均給与、厚生労働省の大卒初任給（<a href="https://bukkanavi.jp/salary" target="_blank" rel="noopener">長期時系列のまとめ</a>）。2019年以前の初任給は2020年の集計方法変更に合わせて1.068倍で接続</li>
+      <li>賞与の月数：厚生労働省「毎月勤労統計調査」の規模別賞与（<a href="https://financial-field.com/income/entry-482945" target="_blank" rel="noopener">集計記事</a>）から概算</li>
+      <li>年収1,000万円超の割合（男性約1割・女性約2%）：国税庁「民間給与実態統計調査」令和6年分（<a href="https://financial-field.com/income/entry-506707" target="_blank" rel="noopener">集計記事</a>）</li>
+      <li>2025年以降の大手の初任給引き上げ：帝国データバンク調査（<a href="https://financial-field.com/income/entry-408528" target="_blank" rel="noopener">記事</a>）、企業別の初任給は<a href="https://jinzainews.net/26812621/" target="_blank" rel="noopener">日本人材ニュース</a>・<a href="https://www.businessinsider.jp/article/2602-2026-wage-increase-summary1/" target="_blank" rel="noopener">Business Insider Japan</a>の集計（2025年度実績〜2027年入社予定が混在）</li>
+      <li>外資系投資銀行・戦略コンサルの年収：<a href="https://gaishishukatsu.com/archives/ef358fda0c7748208b91d6a463e02ad3" target="_blank" rel="noopener">外資就活ドットコム</a>の推定レンジの中央値（企業・年度で大きく異なる推定値）</li>
+    </ul>
+
+    <h4>雇用・就職</h4>
+    <ul>
+      <li>有効求人倍率：厚生労働省「一般職業紹介状況」をもとにした年平均の概算（1990〜2025年）</li>
+      <li>就職人気企業ランキング：<a href="https://career-research.mynavi.jp/reserch/20240409_75374/" target="_blank" rel="noopener">マイナビ・日経（文系）</a>・<a href="https://career-research.mynavi.jp/reserch/20240409_75181/" target="_blank" rel="noopener">（理系）</a>（2011〜2026年卒）、<a href="https://career-research.mynavi.jp/reserch/20190409_5956/" target="_blank" rel="noopener">マイナビ過去資料</a>（2003〜2010年卒）、<a href="https://kailabo.com/soukirisyoku/14733/" target="_blank" rel="noopener">1991・2001年卒のまとめ</a>、<a href="https://middle-edge-neo.jp/articles/9634/" target="_blank" rel="noopener">男子学生の文系・理系別ランキングのまとめ</a>（1990年卒・1992〜2002年卒。母集団が異なる）</li>
+      <li>実在企業の合併・社名変更・経営破綻などは、各社の公表事実にもとづきます。入社後の昇進・リストラなどはゲーム上の出来事で、実在企業とは関係ありません</li>
+    </ul>
+
+    <h4>男女・出産</h4>
+    <ul>
+      <li>第1子出産前後の妻の就業継続率（1985〜89年39.2% → 2010〜14年53.1% → 2015〜19年69.9% → 2020〜24年80.5%）：国立社会保障・人口問題研究所「<a href="https://www.ipss.go.jp/ps-doukou/j/doukou17/doukou17_gaiyo.html" target="_blank" rel="noopener">第17回出生動向基本調査</a>」、<a href="https://www.dir.co.jp/report/column/20161107_011371.html" target="_blank" rel="noopener">第15回の数値</a></li>
+      <li>男性の育児休業取得率（1996年度0.12% → 2024年度40.5%）、管理職に占める女性の割合（課長相当職 2009年度6.1% → 2024年度12.3%）：厚生労働省「<a href="https://www.mhlw.go.jp/toukei/list/dl/71-r06/06.pdf" target="_blank" rel="noopener">令和6年度雇用均等基本調査</a>」</li>
+    </ul>
+
+    <h4>2027年以降の仮定</h4>
+    <table>
+      <tr><td>賃金水準の伸び</td><td>2026〜29年 年2.5%、2030〜34年 年1.0%、2035年〜 年1.5%</td></tr>
+      <tr><td>手取り率</td><td>1990年0.84 → 1998年0.82 → 2026年0.78 → 2040年0.68 → 2050年0.66（社会保険料の上昇を想定。年収による違いは考慮していない）</td></tr>
+      <tr><td>有効求人倍率</td><td>2026〜29年1.15、2030〜34年1.00（AI再編）、2035〜39年1.20、2040年〜1.35（現役世代の減少）</td></tr>
+      <tr><td>出産後の就業継続率</td><td>2035年88%、2050年92%</td></tr>
+      <tr><td>男性の育休取得率</td><td>2030年65%、2050年85%</td></tr>
+      <tr><td>同じ立場での男女の賃金差</td><td>女性は全体平均の0.82倍（1990年）→ 0.90倍（2025年）→ 0.95倍（2050年）</td></tr>
+      <tr><td>時代の出来事</td><td>2030年のAI再編、2035年の気候・物価、2040年の超高齢化、2045年の定年の形骸化は、想定されるシナリオ</td></tr>
+    </table>
+
+    <h4>ゲームとしての設定（統計ではないもの）</h4>
+    <table>
+      <tr><td>生活費</td><td>基本200万円＋住居50万円（30〜64歳）＋子育て100万円（子どもがいる22年間）を賃金水準で調整。子どもがいる場合はパートナーと分担し6割を負担。収入が増えた分の55%は生活水準の上昇に使う</td></tr>
+      <tr><td>年金</td><td>100万円＋現役時代の平均年収（800万円で頭打ち）×18%</td></tr>
+      <tr><td>昇進・リストラ・IPOなど</td><td>時代・企業規模・スキル・HPなどから決まる確率。一部は統計（女性管理職比率の推移など）を参考にした係数</td></tr>
+      <tr><td>寄与率</td><td>22〜52歳（2021年以降に社会に出た場合は短縮）の実質手取りを物差しに、社会に出る年・乱数・選び方をそれぞれ変えたときのばらつき（標準偏差）の比</td></tr>
+      <tr><td>出産</td><td>子どもは1人、30歳時点の分岐として単純化</td></tr>
+    </table>
+    <button class="primary" style="width: 100%; margin-top: 16px;" onclick="$('sources').style.display='none'">閉じる</button>
+  </div>
+</div>
+
+<div id="modal" class="overlay" style="display: none;">
+  <div class="modal-content">
+    <h3 id="modal-title"></h3>
+    <div id="modal-body"></div>
+    <div class="modal-actions">
+      <button id="modal-btn" class="primary" onclick="closeModal()">進む</button>
+      <button id="modal-btn2" class="secondary" style="display: none;" onclick="closeModal2()"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+/*ENGINE START*/
+const START_MIN = 1990, START_MAX = 2026, END_YEAR = 2050;
+const ERA_CMP_MAX = 2020;   // 30年比較（22〜52歳）ができる最後の卒業年
+
+/* ---------- マクロデータ ---------- */
+// 有効求人倍率（年平均の概算）。2026年以降は仮定値
+const JOB_RATIO = {1990:1.40,1991:1.40,1992:1.08,1993:0.76,1994:0.64,1995:0.63,1996:0.70,1997:0.72,1998:0.53,1999:0.48,
+  2000:0.59,2001:0.59,2002:0.54,2003:0.64,2004:0.83,2005:0.95,2006:1.06,2007:1.04,2008:0.88,2009:0.47,
+  2010:0.52,2011:0.65,2012:0.80,2013:0.93,2014:1.09,2015:1.20,2016:1.36,2017:1.50,2018:1.61,2019:1.60,
+  2020:1.18,2021:1.13,2022:1.28,2023:1.31,2024:1.25,2025:1.22};
+function jobRatio(y) {
+  if (JOB_RATIO[y] != null) return JOB_RATIO[y];
+  if (y <= 2029) return 1.15;   // 人手不足は続く
+  if (y <= 2034) return 1.00;   // AI再編でホワイトカラー求人が縮む
+  if (y <= 2039) return 1.20;
+  return 1.35;                  // 現役世代の急減
+}
+// 手取り率：1998年 約0.82 → 2040年 約0.68
+const TAX_POINTS = [[1990,0.84],[1998,0.82],[2026,0.78],[2040,0.68],[2050,0.66]];
+function taxRate(y) {
+  if (y <= TAX_POINTS[0][0]) return TAX_POINTS[0][1];
+  for (let i = 1; i < TAX_POINTS.length; i++) {
+    const [y1, r1] = TAX_POINTS[i];
+    if (y <= y1) { const [y0, r0] = TAX_POINTS[i-1]; return r0 + (r1 - r0) * (y - y0) / (y1 - y0); }
+  }
+  return TAX_POINTS[TAX_POINTS.length-1][1];
+}
+/* ---------- 賃金データ ----------
+   出典：
+   ・年齢×企業規模の賃金カーブ：厚生労働省「令和7年賃金構造基本統計調査」第4表（一般労働者・男女計・所定内給与月額）
+     ＋第6-2表の正社員/一般労働者比で正社員水準に補正
+   ・非正規の年齢カーブ：同 第6-1表（非正社員・男女計）
+   ・産業差：同 第6-3表（正社員・男女計、全産業平均358.8千円との比）
+   ・役職差：「令和6年賃金構造基本統計調査」役職別（部長級627.2・課長級512.0・係長級385.9千円）
+   ・年ごとの水準：国税庁「民間給与実態統計調査」平均給与、厚労省 大卒初任給（男）の推移
+   ・賞与月数：厚労省「毎月勤労統計調査」2024冬＋2025夏の規模別賞与からの概算
+   2026年以降の伸び率は仮定値 */
+// 国税庁 平均給与（万円）1990〜2025
+const AVG_SALARY = [425.2,446.6,455.0,452.2,455.5,457.2,460.8,467.3,464.8,461.3, 461.0,454.0,447.8,443.9,438.8,436.8,434.9,437.2,429.6,405.9,
+  412.0,409.0,408.0,413.6,420.9,423.4,425.0,433.6,439.1,438.4, 435.1,445.7,457.6,459.5,477.5,486.6];
+// 大卒初任給・男（千円）1990〜2025。2019年以前は2020年の集計方法変更に合わせ ×1.068 で接続
+const START_SALARY = [169.9,179.4,186.9,190.3,192.4,194.2,193.2,193.9,195.5,196.6, 196.9,198.3,198.5,201.3,198.3,196.7,199.8,198.8,201.3,201.4,
+  200.3,205.0,201.8,200.2,202.9,204.5,205.9,207.8,210.1,212.8, 227.2,226.7,229.7,240.3,251.3,264.9];
+const futureGrowth = y => y <= 2029 ? 1.025 : y <= 2034 ? 1.010 : 1.015;   // 仮定
+function seriesAt(arr, y, preAdj) {
+  if (y < 1990) y = 1990;
+  if (y <= 2025) return arr[y - 1990] * (preAdj && y <= 2019 ? 1.068 : 1);
+  let v = arr[arr.length - 1];
+  for (let t = 2026; t <= y; t++) v *= futureGrowth(t);
+  return v;
+}
+const avgIdx = y => seriesAt(AVG_SALARY, y) / AVG_SALARY[AVG_SALARY.length - 1];
+const startIdx = y => seriesAt(START_SALARY, y, true) / START_SALARY[START_SALARY.length - 1];
+// 若いほど初任給の動き、年長ほど平均給与の動きに連動
+function wageIdx(y, age) { const w = clamp((35 - age) / 13, 0, 1); return w * startIdx(y) + (1 - w) * avgIdx(y); }
+
+// 2025年 所定内給与月額（千円）：年齢階級 20-24,25-29,...,65-69
+const CURVE_AGES = [22, 27, 32, 37, 42, 47, 52, 57, 62, 67];
+const CURVE = {
+  '大手':   { pts:[258.4,301.7,344.6,386.3,422.0,439.3,447.6,465.9,357.7,294.6], adj:414.1/385.1, bonus:3.3 },
+  '中堅':   { pts:[237.6,270.6,299.4,322.3,346.1,362.1,376.0,376.7,316.2,284.6], adj:344.4/326.2, bonus:3.0 },
+  '中小':   { pts:[226.3,258.2,286.5,305.3,318.9,330.0,336.6,335.1,315.7,281.0], adj:315.0/305.6, bonus:2.3 },
+  '非正規': { pts:[203.5,227.9,233.8,230.3,230.6,233.4,229.7,232.5,279.9,249.4], adj:1, bonus:0.5 }
+};
+function monthly2025(size, age) {
+  const c = CURVE[size], p = c.pts;
+  let v;
+  if (age >= 70) v = p[9] * 0.9;
+  else if (age >= 65) v = p[9];
+  else if (age >= 60) v = p[8];                 // 60歳で段差（役職定年・再雇用）
+  else if (age >= 57) v = p[7];
+  else if (age <= 22) v = p[0];
+  else { let i = 0; while (CURVE_AGES[i + 1] < age) i++; const t = (age - CURVE_AGES[i]) / (CURVE_AGES[i + 1] - CURVE_AGES[i]); v = p[i] + (p[i + 1] - p[i]) * t; }
+  return v * c.adj;
+}
+// その年・その年齢・その規模の標準的な年収（万円）
+function stdIncome(y, age, size) { const c = CURVE[size]; return monthly2025(size, age) * wageIdx(y, age) * (12 + c.bonus) / 10; }
+// 初年度：初任給×12＋賞与1.5か月（男女計に近づけるため ×0.98）
+const START_SIZE = { '大手':1.05, '中堅':1.0, '中小':0.96, '非正規':0.85 };
+// 2023年以降、大手を中心に初任給の引き上げ競争（帝国データバンク：2025年度に初任給30万円以上の大手は1.7%、前年0.2%）
+const bigPremium = (y, size) => size === '大手' ? 1 + clamp((y - 2022) * 0.03, 0, 0.12) : 1;
+function startIncome(y, size, ind) { return seriesAt(START_SALARY, y, true) * 0.98 * START_SIZE[size] * bigPremium(y, size) * Math.sqrt(ind.mul) * 13.5 / 10; }
+// 人気企業の大卒初任給（月額・千円、2026年前後の水準）。日本人材ニュース、Business Insider Japan の集計より
+const COMPANY_START = [
+  [/伊藤忠商事/, 360], [/三菱商事/, 350], [/三井物産/, 340], [/損害保険ジャパン/, 347], [/東京海上日動/, 394],
+  [/第一生命/, 354], [/ファーストリテイリング/, 370], [/セガ/, 330], [/任天堂/, 306], [/サントリー/, 301],
+  [/三菱UFJ銀行|三井住友銀行/, 300], [/味の素/, 291], [/トヨタ自動車/, 275], [/全日本空輸|日本航空/, 273]
+];
+function companyStart(company, y) {
+  if (!company || y < 2025) return null;
+  const hit = COMPANY_START.find(([re]) => re.test(company));
+  return hit ? hit[1] * (y === 2025 ? 0.95 : 1) : null;
+}
+// リストラ・倒産の基礎確率
+const LAYOFF = {1992:.02,1993:.03,1994:.03,1997:.04,1998:.05,1999:.05,2001:.04,2002:.04,2008:.04,2009:.06,2010:.03,2020:.025,2030:.04,2031:.04,2032:.035,2033:.03};
+const layoffBase = y => LAYOFF[y] || 0.01;
+
+// mul：産業別 正社員賃金 ÷ 全産業平均（令和7年 第6-3表）
+const INDUSTRIES = [
+  { key:'mfg',    name:'製造業',         mul:0.96, work:10, skill:40, adapt:25, layoff:1.0, ai:0.5 },  // 製造業 346.1
+  { key:'fin',    name:'金融',           mul:1.24, work:11, skill:45, adapt:25, layoff:1.2, ai:0.9 },  // 金融業,保険業 444.8
+  { key:'retail', name:'小売・サービス', mul:0.94, work:10, skill:30, adapt:30, layoff:1.1, ai:0.4 },  // 卸売・小売374.4と宿泊・飲食303.8の中間
+  { key:'it',     name:'IT・通信',       mul:1.15, work:11, skill:40, adapt:40, layoff:1.2, ai:0.7 },  // 情報通信業 411.0
+  { key:'public', name:'公務・インフラ', mul:1.10, work:9,  skill:35, adapt:20, layoff:0.2, ai:0.4 },  // 電気・ガス等453.7を公務寄りに割り引き（仮定）
+  { key:'media',  name:'広告・メディア', mul:1.15, work:12, skill:35, adapt:35, layoff:1.1, ai:0.8 }   // 学術研究,専門・技術サービス業 453.1を割り引き（仮定）
+];
+// 配属される業界の確率：雇用者数の多い製造業・小売サービスを厚めに（概算）。加重平均の賃金倍率は約1.04
+const IND_WEIGHT = { mfg:0.28, retail:0.28, fin:0.10, it:0.12, public:0.10, media:0.12 };
+function pickIndustry(u) { let acc = 0; for (const i of INDUSTRIES) { acc += IND_WEIGHT[i.key]; if (u < acc) return i; } return INDUSTRIES[INDUSTRIES.length - 1]; }
+const SIZES = {
+  '大手':   { layoff:0.6, promo:0.8 },
+  '中堅':   { layoff:0.9, promo:1.0 },
+  '中小':   { layoff:1.3, promo:1.1 },
+  '非正規': { layoff:1.8, promo:0 }
+};
+// 役職による上振れ（同年代の平均比）：課長級512.0 ÷ 45-49歳正社員395.6 ≒ 1.29、部長級627.2 ÷ 50-54歳412.7 ≒ 1.52
+// 役職なしの人は、30歳までは同年代平均どおり、以降は同期の昇進とともに平均を下回る
+// （非役職者302.8 ÷ 40-44歳正社員379.0 ≒ 0.80。管理職以外の伸びも含め、下限0.85とした）
+function rankFactor(rank, age, size) {
+  if (size === '非正規') return 1;
+  if (rank === '部長') return 1.52;
+  if (rank === '課長') return 1.29;
+  if (rank === '係長') return 1.0;
+  return age <= 30 ? 1 : Math.max(0.85, 1 - (age - 30) * 0.01);
+}
+// 一時的な減給（賞与カットなど）は数年で戻る
+function tempCut(s, src, amount, years) {
+  const d = ch(s, src, 'income', -Math.round(amount));
+  if (d) s.tempCuts.push({ year: s.year + years, amount: -d, src });
+  return d;
+}
+function jobTitle(ind, size) {
+  if (size === '非正規') return `${ind.name} / 契約社員`;
+  if (ind.key === 'public') return `${ind.name} / 正規職員`;
+  return `${ind.name} / ${size}企業 総合職`;
+}
+
+
+/* ---------- 就職人気企業ランキング（卒業年＝入社年ごと、文系・理系の上位10社） ----------
+   出典：
+   a … マイナビ「就職企業人気ランキング」1990年調査（1991年卒）・2000年調査（2001年卒）（kailabo.com掲載の表）
+   m … 毎年のランキング（男子学生・文系/理系別）。middle-edge-neo.jp「男子大学生の就職人気企業ランキングを振り返る」の調査年＋1を卒業年とした
+   p … マイナビ「大学生就職人気企業ランキング」各年版PDF（2003〜2010年卒）
+   n … マイナビ・日経「大学生就職企業人気ランキング」（2011〜2020年卒） */
+const RANKINGS = {
+  1990:{ src:"m", bun:["日本電信電話", "三井物産", "三和銀行", "東京海上火災保険", "日本生命保険", "三菱銀行", "三菱商事", "伊藤忠商事", "住友銀行", "富士銀行"], ri:["日本電信電話", "日本電気", "日立製作所", "東芝", "日本IBM", "ソニー", "三菱電機", "富士通", "松下電器産業", "本田技研工業"]},
+  1991:{ src:"a", bun:["全日本空輸", "三井物産", "伊藤忠商事", "三菱銀行", "日本航空", "住友銀行", "東海旅客鉄道", "富士銀行", "日本電信電話", "東京海上火災保険"], ri:["日本電気", "ソニー", "富士通", "日本電信電話", "日本IBM", "松下電器産業", "日立製作所", "日産自動車", "本田技研工業", "トヨタ自動車"]},
+  1992:{ src:"m", bun:["東京海上火災保険", "全日本空輸", "三井物産", "日本航空", "三菱商事", "東海旅客鉄道", "ソニー", "日本電信電話", "三井不動産", "日本興業銀行"], ri:["ソニー", "日本電気", "松下電器産業", "東芝", "日本電信電話", "日産自動車", "トヨタ自動車", "日本IBM", "富士通", "日立製作所"]},
+  1993:{ src:"m", bun:["日本電信電話", "東京海上火災保険", "全日本空輸", "ソニー", "三菱商事", "三井物産", "日本航空", "松下電器産業", "東海旅客鉄道", "日本生命保険"], ri:["ソニー", "日本電気", "日立製作所", "東芝", "松下電器産業", "日本電信電話", "富士通", "三菱電機", "三菱重工業", "トヨタ自動車"]},
+  1994:{ src:"m", bun:["ソニー", "東京海上火災保険", "全日本空輸", "三井物産", "三菱商事", "三菱銀行", "日本電信電話", "日本航空", "松下電器産業", "伊藤忠商事"], ri:["ソニー", "日本電気", "日立製作所", "松下電器産業", "東芝", "富士通", "三菱重工業", "三菱電機", "川崎重工業", "トヨタ自動車"]},
+  1995:{ src:"m", bun:["三菱銀行", "東京海上火災保険", "三菱商事", "三井物産", "伊藤忠商事", "日本生命保険", "第一勧業銀行", "日本興業銀行", "三井不動産", "日本電信電話"], ri:["ソニー", "日立製作所", "日本電気", "松下電器産業", "三菱重工業", "東芝", "三菱電機", "川崎重工業", "東京電力", "清水建設"]},
+  1996:{ src:"m", bun:["日本電信電話", "三井物産", "三菱銀行", "東京海上火災保険", "三菱商事", "三和銀行", "第一勧業銀行", "富士銀行", "東日本旅客鉄道", "伊藤忠商事"], ri:["日本電信電話", "ソニー", "三菱重工業", "日立製作所", "松下電器産業", "日本電気", "東芝", "石川島播磨重工業", "NTTデータ", "川崎重工業"]},
+  1997:{ src:"m", bun:["日本電信電話", "東京海上火災保険", "東京三菱銀行", "三井物産", "伊藤忠商事", "東海旅客鉄道", "三和銀行", "三菱商事", "第一勧業銀行", "富士銀行"], ri:["日立製作所", "日本電信電話", "三菱重工業", "日本電気", "ソニー", "東芝", "石川島播磨重工業", "川崎重工業", "松下電器産業", "東京電力"]},
+  1998:{ src:"m", bun:["日本電信電話", "三井物産", "三菱商事", "東京三菱銀行", "東京海上火災保険", "第一勧業銀行", "伊藤忠商事", "東日本旅客鉄道", "東海旅客鉄道", "三和銀行"], ri:["日本電信電話", "ソニー", "NTTデータ", "本田技研工業", "三菱重工業", "トヨタ自動車", "川崎重工業", "日立製作所", "松下電器産業", "石川島播磨重工業"]},
+  1999:{ src:"m", bun:["ソニー", "日本電信電話", "JTB", "日本放送協会", "東京海上火災保険", "日本航空", "全日本空輸", "三井物産", "電通", "三菱商事"], ri:["ソニー", "日本電信電話", "石川島播磨重工業", "本田技研工業", "日本電気", "三菱重工業", "NTTデータ", "トヨタ自動車", "セガ", "東芝"]},
+  2000:{ src:"m", bun:["ソニー", "JTB", "全日本空輸", "東京三菱銀行", "電通", "NTT移動通信網", "東日本旅客鉄道", "日本航空", "日本放送協会", "サントリー"], ri:["ソニー", "本田技研工業", "トヨタ自動車", "日本電気", "NTT移動通信網", "松下電器産業", "石川島播磨重工業", "東日本旅客鉄道", "三菱重工業", "積水ハウス"]},
+  2001:{ src:"a", bun:["JTB", "NTTドコモ", "ソニー", "近畿日本ツーリスト", "資生堂", "日本航空", "ベネッセコーポレーション", "トヨタ自動車", "全日本空輸", "講談社"], ri:["ソニー", "資生堂", "本田技研工業", "NTTドコモ", "トヨタ自動車", "旭化成工業", "NTTデータ", "鹿島", "味の素", "竹中工務店"]},
+  2002:{ src:"m", bun:["ソニー", "NTTドコモ", "本田技研工業", "電通", "日本放送協会", "トヨタ自動車", "JTB", "富士通", "日本IBM", "松下電器産業"], ri:["ソニー", "本田技研工業", "トヨタ自動車", "NTTドコモ", "富士通", "日本電気", "松下電器産業", "日本IBM", "NTTデータ", "ソニー・コンピュータエンタテインメント"]},
+  2003:{ src:"p", bun:["JTB", "ソニー", "トヨタ自動車", "日本航空", "資生堂", "全日本空輸", "NTTドコモ", "サントリー", "東京三菱銀行", "日本放送協会"], ri:["ソニー", "トヨタ自動車", "本田技研工業", "資生堂", "武田薬品工業", "日本電気", "旭化成", "NTTドコモ", "松下電器産業", "サントリー"]},
+  2004:{ src:"p", bun:["JTB", "トヨタ自動車", "日本航空", "ソニー", "サントリー", "全日本空輸", "資生堂", "伊藤忠商事", "電通", "近畿日本ツーリスト"], ri:["ソニー", "トヨタ自動車", "本田技研工業", "資生堂", "サントリー", "旭化成", "日本電気", "武田薬品工業", "NTTドコモ", "キヤノン"]},
+  2005:{ src:"p", bun:["JTB", "全日本空輸", "日本航空", "トヨタ自動車", "サントリー", "資生堂", "ソニー", "積水ハウス", "電通", "フジテレビジョン"], ri:["トヨタ自動車", "ソニー", "サントリー", "松下電器産業", "富士通", "本田技研工業", "資生堂", "キヤノン", "日産自動車", "シャープ"]},
+  2006:{ src:"p", bun:["JTB", "全日本空輸", "日本航空", "資生堂", "トヨタ自動車", "サントリー", "積水ハウス", "ベネッセコーポレーション", "フジテレビジョン", "電通"], ri:["トヨタ自動車", "日立製作所", "サントリー", "ソニー", "松下電器産業", "本田技研工業", "資生堂", "日産自動車", "日本電気", "積水ハウス"]},
+  2007:{ src:"p", bun:["JTB", "全日本空輸", "トヨタ自動車", "日本航空", "資生堂", "サントリー", "三菱東京UFJ銀行", "みずほフィナンシャルグループ", "ベネッセコーポレーション", "フジテレビジョン"], ri:["トヨタ自動車", "サントリー", "日立製作所", "資生堂", "本田技研工業", "松下電器産業", "富士通", "ソニー", "カゴメ", "旭化成"]},
+  2008:{ src:"p", bun:["資生堂", "JTBグループ", "全日本空輸", "日本航空", "三菱東京UFJ銀行", "みずほフィナンシャルグループ", "サントリー", "トヨタ自動車", "ベネッセコーポレーション", "積水ハウス"], ri:["トヨタ自動車", "日立製作所", "資生堂", "サントリー", "カゴメ", "松下電器産業", "日本電気", "三菱重工業", "本田技研工業", "東芝"]},
+  2009:{ src:"p", bun:["JTBグループ", "資生堂", "全日本空輸", "三菱東京UFJ銀行", "日本航空", "みずほフィナンシャルグループ", "三井住友銀行", "トヨタ自動車", "ベネッセコーポレーション", "オリエンタルランド"], ri:["トヨタ自動車", "資生堂", "ソニー", "カゴメ", "シャープ", "日立製作所", "サントリー", "松下電器産業", "三菱重工業", "本田技研工業"]},
+  2010:{ src:"p", bun:["JTBグループ", "資生堂", "全日本空輸", "三菱東京UFJ銀行", "日本航空", "ベネッセコーポレーション", "オリエンタルランド", "東日本旅客鉄道", "三井住友銀行", "サントリー"], ri:["ソニー", "パナソニック", "資生堂", "サントリー", "味の素", "シャープ", "トヨタ自動車", "旭化成", "キヤノン", "カゴメ"]},
+  2011:{ src:"n", bun:["JTBグループ", "資生堂", "全日本空輸", "オリエンタルランド", "三菱東京UFJ銀行", "明治製菓", "東日本旅客鉄道", "三井住友銀行", "エイチ・アイ・エス", "ベネッセコーポレーション"], ri:["味の素", "パナソニック", "カゴメ", "資生堂", "ソニー", "明治製菓", "三菱重工業", "東日本旅客鉄道", "東海旅客鉄道", "東芝"]},
+  2012:{ src:"n", bun:["JTBグループ", "全日本空輸", "資生堂", "オリエンタルランド", "三菱東京UFJ銀行", "東日本旅客鉄道", "三井住友銀行", "ニトリ", "エイチ・アイ・エス", "伊藤忠商事"], ri:["パナソニック", "味の素", "ソニー", "東芝", "明治グループ", "カゴメ", "資生堂", "東海旅客鉄道", "三菱重工業", "本田技研工業"]},
+  2013:{ src:"n", bun:["JTBグループ", "全日本空輸", "オリエンタルランド", "電通", "三菱東京UFJ銀行", "エイチ・アイ・エス", "日本郵政グループ", "資生堂", "ロッテ", "東日本旅客鉄道"], ri:["明治グループ", "東芝", "カゴメ", "ソニー", "資生堂", "トヨタ自動車", "東日本旅客鉄道", "旭化成グループ", "味の素", "ロッテ"]},
+  2014:{ src:"n", bun:["JTBグループ", "全日本空輸", "エイチ・アイ・エス", "電通", "三菱東京UFJ銀行", "オリエンタルランド", "東日本旅客鉄道", "日本航空", "Plan・Do・See", "東京海上日動火災保険"], ri:["東日本旅客鉄道", "カゴメ", "旭化成グループ", "資生堂", "明治グループ", "味の素", "トヨタ自動車", "三菱重工業", "東芝", "NTTデータ"]},
+  2015:{ src:"n", bun:["JTBグループ", "全日本空輸", "エイチ・アイ・エス", "日本航空", "電通", "博報堂", "三菱東京UFJ銀行", "オリエンタルランド", "東京海上日動火災保険", "Plan・Do・See"], ri:["カゴメ", "トヨタ自動車", "味の素", "東日本旅客鉄道", "明治グループ", "三菱重工業", "東芝", "旭化成グループ", "資生堂", "一条工務店"]},
+  2016:{ src:"n", bun:["JTBグループ", "エイチ・アイ・エス", "全日本空輸", "日本航空", "三菱東京UFJ銀行", "電通", "三井住友銀行", "みずほフィナンシャルグループ", "博報堂", "東京海上日動火災保険"], ri:["トヨタ自動車", "味の素", "カゴメ", "明治グループ", "資生堂", "東日本旅客鉄道", "サントリーホールディングス", "キリン", "三菱電機", "日立製作所"]},
+  2017:{ src:"n", bun:["JTBグループ", "全日本空輸", "エイチ・アイ・エス", "日本航空", "三菱東京UFJ銀行", "東京海上日動火災保険", "三井住友銀行", "電通", "博報堂", "みずほフィナンシャルグループ"], ri:["味の素", "東日本旅客鉄道", "資生堂", "トヨタ自動車", "サントリーホールディングス", "カゴメ", "明治グループ", "NTTデータ", "山崎製パン", "ソニー"]},
+  2018:{ src:"n", bun:["全日本空輸", "JTBグループ", "日本航空", "三菱東京UFJ銀行", "東京海上日動火災保険", "三井住友銀行", "エイチ・アイ・エス", "みずほフィナンシャルグループ", "損害保険ジャパン日本興亜", "伊藤忠商事"], ri:["ソニー", "味の素", "資生堂", "明治グループ", "サントリーグループ", "トヨタ自動車", "東日本旅客鉄道", "カゴメ", "アサヒビール", "東海旅客鉄道"]},
+  2019:{ src:"n", bun:["全日本空輸", "日本航空", "東京海上日動火災保険", "JTBグループ", "オリエンタルランド", "エイチ・アイ・エス", "ソニー", "損害保険ジャパン日本興亜", "伊藤忠商事", "資生堂"], ri:["ソニー", "味の素", "明治グループ", "カゴメ", "サントリーグループ", "森永乳業", "NTTデータ", "資生堂", "トヨタ自動車", "アサヒビール"]},
+  2020:{ src:"n", bun:["JTBグループ", "全日本空輸", "東京海上日動火災保険", "ソニー", "日本航空", "味の素", "伊藤忠商事", "コナミグループ", "ソニーミュージックグループ", "アサヒビール"], ri:["ソニー", "味の素", "明治グループ", "カゴメ", "富士通", "トヨタ自動車", "サントリーグループ", "アサヒビール", "森永乳業", "オムロン"]},
+  2021:{ src:"n", bun:["JTBグループ", "全日本空輸", "東京海上日動火災保険", "日本航空", "オリエンタルランド", "伊藤忠商事", "ソニー", "味の素", "ニトリ", "ソニーミュージックグループ"], ri:["ソニー", "味の素", "富士通", "サントリーグループ", "トヨタ自動車", "NTTデータ", "カゴメ", "資生堂", "明治グループ", "日立製作所"]},
+  2022:{ src:"n", bun:["東京海上日動火災保険", "第一生命保険", "味の素", "伊藤忠商事", "ニトリ", "ソニーミュージックグループ", "バンダイ", "損害保険ジャパン", "サントリーグループ", "講談社"], ri:["味の素", "ソニーグループ", "サントリーグループ", "明治グループ", "トヨタ自動車", "NTTデータ", "キヤノン", "富士通", "カゴメ", "東海旅客鉄道"]},
+  2023:{ src:"n", bun:["東京海上日動火災保険", "ソニーグループ", "ニトリ", "日本生命保険", "伊藤忠商事", "ソニーミュージックグループ", "講談社", "損害保険ジャパン", "バンダイ", "味の素"], ri:["ソニーグループ", "味の素", "富士通", "NTTデータ", "トヨタ自動車", "サントリーグループ", "Sky", "三菱重工業", "カゴメ", "キヤノン"]},
+  2024:{ src:"n", bun:["ニトリ", "東京海上日動火災保険", "JTBグループ", "ファーストリテイリング", "伊藤忠商事", "三菱UFJ銀行", "味の素", "日本生命保険", "ソニーミュージックグループ", "Plan・Do・See"], ri:["ソニーグループ", "味の素", "三菱重工業", "Sky", "NTTデータ", "セガ", "カゴメ", "富士通", "トヨタ自動車", "アイリスオーヤマ"]},
+  2025:{ src:"n", bun:["ニトリ", "みずほフィナンシャルグループ", "伊藤忠商事", "三菱UFJ銀行", "味の素", "東京海上日動火災保険", "日本航空", "セガ", "JTBグループ", "バンダイ"], ri:["ソニーグループ", "味の素", "KDDI", "Sky", "パナソニックグループ", "三菱重工業", "NTTデータ", "キヤノン", "セガ", "トヨタ自動車"]},
+  2026:{ src:"n", bun:["ニトリ", "みずほフィナンシャルグループ", "味の素", "伊藤忠商事", "日本航空", "良品計画", "JTBグループ", "全日本空輸", "バンダイ", "コナミグループ"], ri:["ソニーグループ", "味の素", "Sky", "KDDI", "パナソニックグループ", "三菱重工業", "NTTデータ", "トヨタ自動車", "サントリーグループ", "デンソー"]}
+};
+const RANK_SRC = {
+  a: "マイナビ就職企業人気ランキング",
+  m: "男子学生の就職人気企業ランキング",
+  p: "マイナビ大学生就職人気企業ランキング",
+  n: "マイナビ・日経 大学生就職企業人気ランキング"
+};
+function companyIndustry(name) {
+  if (/銀行|生命|海上|損害保険|みずほ|フィナンシャル|商事|物産/.test(name)) return 'fin';
+  if (/電通|博報堂|テレビ|放送協会|講談社|ベネッセ|ミュージック|コナミ|セガ|コンピュータエンタテインメント/.test(name)) return 'media';
+  if (/電信電話|NTT|ドコモ|IBM|富士通|日本電気|KDDI|^Sky$/.test(name)) return 'it';
+  if (/航空|空輸|旅客鉄道|JTB|ツーリスト|エイチ・アイ・エス|オリエンタルランド|ニトリ|Plan・Do・See|ファーストリテイリング|良品計画/.test(name)) return 'retail';
+  if (/バンダイ/.test(name)) return 'media';
+  if (/電力|郵政/.test(name)) return 'public';
+  return 'mfg';
+}
+// 実在企業の出来事（入社していた場合のみ発生）
+const COMPANY_EVENTS = [
+  { year:1996, re:/^三菱銀行$/, to:"東京三菱銀行", text:"三菱銀行と東京銀行が合併し、東京三菱銀行が発足した。" },
+  { year:2000, re:/NTT移動通信網/, to:"NTTドコモ", text:"NTT移動通信網が、社名をNTTドコモに変更した。" },
+  { year:2001, re:/^住友銀行$/, to:"三井住友銀行", text:"住友銀行とさくら銀行が合併し、三井住友銀行が発足した。" },
+  { year:2002, re:/第一勧業銀行|富士銀行|日本興業銀行/, to:"みずほフィナンシャルグループ", text:"第一勧業・富士・日本興業の3行が統合し、みずほグループが発足した。" },
+  { year:2002, re:/^三和銀行$/, to:"UFJ銀行", text:"三和銀行と東海銀行が合併し、UFJ銀行が発足した。" },
+  { year:2004, re:/東京海上火災保険/, to:"東京海上日動火災保険", text:"東京海上火災保険と日動火災が合併し、東京海上日動火災保険になった。" },
+  { year:2006, re:/東京三菱銀行|UFJ銀行/, to:"三菱東京UFJ銀行", text:"東京三菱銀行とUFJ銀行が合併し、三菱東京UFJ銀行が発足した。" },
+  { year:2007, re:/石川島播磨重工業/, to:"IHI", text:"石川島播磨重工業が、社名をIHIに変更した。" },
+  { year:2008, re:/松下電器産業/, to:"パナソニック", text:"松下電器産業が、社名をパナソニックに変更した。" },
+  { year:2010, re:/日本航空/, text:"勤め先の日本航空が経営破綻し、会社更生法の適用を申請した。",
+    effect: s => { ch(s,'era','hp',-10); ch(s,'era','autonomy',-5); const d = tempCut(s,'era',s.income * 0.15,3); return `年収 ${yen(d)}（数年で戻る）`; } },
+  { year:2015, re:/東芝/, text:"勤め先の東芝で不正会計問題が発覚し、会社が大きく揺れる。",
+    effect: s => { ch(s,'era','hp',-5); ch(s,'era','autonomy',-3); return "心身の余力 -5%"; } },
+  { year:2016, re:/シャープ/, text:"勤め先のシャープが、台湾の鴻海精密工業の傘下に入った。",
+    effect: s => { ch(s,'era','autonomy',-3); return "自律度 -3"; } },
+  { year:2018, re:/三菱東京UFJ銀行/, to:"三菱UFJ銀行", text:"三菱東京UFJ銀行が、行名を三菱UFJ銀行に変更した。" },
+  { year:2020, re:/全日本空輸|日本航空|JTB|エイチ・アイ・エス|近畿日本ツーリスト|オリエンタルランド/, text:"コロナ禍で旅行・レジャー需要が蒸発し、賞与が大幅に削られた。",
+    effect: s => { ch(s,'era','hp',-5); const d = tempCut(s,'era',s.income * 0.15,2); return `年収 ${yen(d)}（数年で戻る）`; } }
+];
+function renameCompany(s, to) {
+  s.job = s.job.replace(s.company, to);
+  s.company = to;
+}
+function companyEvents(s) {
+  if (!s.company) return;
+  for (const ev of COMPANY_EVENTS) {
+    if (ev.year !== s.year || !ev.re.test(s.company)) continue;
+    L(s, ev.text, 'event');
+    if (ev.to) renameCompany(s, ev.to);
+    if (ev.effect) { const note = ev.effect(s); if (note) L(s, `→ ${note}`, 'effect'); }
+  }
+}
+
+/* ---------- 男女・出産のデータ ----------
+   ・第1子出産前後の妻の就業継続率：国立社会保障・人口問題研究所「出生動向基本調査」
+     1985〜89年 39.2%（長く4割前後で推移）→ 2010〜14年 53.1% → 2015〜19年 69.9% → 2020〜24年 80.5%（第17回、2026年9月公表）
+   ・男性の育児休業取得率：厚労省「雇用均等基本調査」1996年度 0.12% → 2012年度 1.89% → 2020年度 12.65% → 2024年度 40.5%
+   ・管理職に占める女性の割合（課長相当職）：同 2009年度 6.1% → 2024年度 12.3%
+   ・同じ役職での男女の賃金差：令和6年賃金構造基本統計調査（部長級 女性/男性≒0.86、課長級≒0.88、係長級≒0.89）
+   2026年以降の値は仮定 */
+const lerpPts = (pts, y) => { if (y <= pts[0][0]) return pts[0][1]; for (let i = 1; i < pts.length; i++) if (y <= pts[i][0]) { const [y0, v0] = pts[i - 1], [y1, v1] = pts[i]; return v0 + (v1 - v0) * (y - y0) / (y1 - y0); } return pts[pts.length - 1][1]; };
+const CONTINUE_PTS = [[1987,0.392],[2002,0.40],[2007,0.43],[2012,0.531],[2017,0.699],[2022,0.805],[2035,0.88],[2050,0.92]];
+const MALE_LEAVE_PTS = [[1996,0.0012],[2005,0.0056],[2012,0.0189],[2016,0.0316],[2019,0.0748],[2020,0.1265],[2022,0.1713],[2023,0.301],[2024,0.405],[2030,0.65],[2050,0.85]];
+// 同じ立場での賃金の男女差（女性/全体）。時代とともに縮む
+const FEMALE_WAGE_PTS = [[1990,0.82],[2025,0.90],[2050,0.95]];
+const MALE_WAGE_PTS = [[1990,1.05],[2025,1.03],[2050,1.02]];
+const genderWage = (g, y) => lerpPts(g === '女性' ? FEMALE_WAGE_PTS : MALE_WAGE_PTS, y);
+// 女性の昇進のしにくさ（課長相当職に占める女性比率の伸びを反映した係数）
+const FEMALE_PROMO_PTS = [[1990,0.3],[2009,0.4],[2024,0.65],[2040,0.9],[2050,0.95]];
+const continueRate = y => lerpPts(CONTINUE_PTS, y);
+const maleLeaveRate = y => lerpPts(MALE_LEAVE_PTS, y);
+const pctText = v => v < 0.01 ? `${(v * 100).toFixed(1)}%` : `${Math.round(v * 100)}%`;
+
+/* ---------- 外資系（投資銀行・戦略コンサル）：エクストリームケース ----------
+   年収は外資就活ドットコム「外銀 vs 戦略コンサル」の推定レンジの中央値（2025年前後の水準、万円）。
+   企業・年度で大きく変わる推定値。アップ・オア・アウトで、多くは数年〜10年で事業会社などへ移る */
+const GAISHI = {
+  ib:  { name:"外資系投資銀行",   pay:[1500,1850,2150,2600,3200,3800,4300,4800,5200,5500], titles:[[1,'アナリスト'],[4,'アソシエイト'],[6,'VP'],[10,'MD']], out:0.13, work:14 },
+  mbb: { name:"外資系戦略コンサル", pay:[1000,1150,1350,1700,2100,2600,3000,3400,3700,4000], titles:[[1,'アソシエイト'],[3,'コンサルタント'],[5,'マネージャー'],[8,'プリンシパル'],[10,'パートナー']], out:0.11, work:13 }
+};
+const gaishiTitle = (g, n) => GAISHI[g.track].titles.filter(t => t[0] <= n).pop()[1];
+const gaishiPay = (g, n, y) => GAISHI[g.track].pay[Math.min(n, 10) - 1] * (n > 10 ? 1 + (n - 10) * 0.02 : 1) * avgIdx(y) * g.p;
+function enterGaishi(s, track, n) {
+  s.gaishi = { track, n, p: 0.9 + rnd(s.seed, s.year, 'gaishi-p') * 0.2 };
+  s.industry = INDUSTRIES.find(i => i.key === 'fin');
+  s.size = '大手'; s.onLadder = false; s.rank = ''; s.company = null;
+  s.job = `${GAISHI[track].name} / ${gaishiTitle(s.gaishi, n)}`;
+  s.workHours = Math.max(s.workHours, GAISHI[track].work);
+}
+function exitGaishi(s, src, reason) {
+  const g = s.gaishi; s.gaishi = null;
+  const target = Math.round(Math.max(stdIncome(s.year, s.age, '大手') * 1.6, s.income * 0.5));
+  const d = ch(s, src, 'income', target - s.income);
+  ch(s, src, 'workHours', Math.min(0, 11 - s.workHours));
+  s.job = reason === 'pe' ? "PEファンド / 投資担当" : reason === 'cxo' ? "事業会社 / 経営幹部" : "事業会社 / 経営企画";
+  if (reason === 'pe') ch(s, 'era', 'income', Math.min(Math.round(s.income * 0.3), 500));
+  return d;
+}
+function gaishiYear(s) {
+  const g = s.gaishi; if (!g) return;
+  const G = GAISHI[g.track];
+  // アップ・オア・アウト：HPが低いほど外れやすい。10年を超えて残れるのは一握り
+  const outP = (g.n >= 10 ? 0.25 : G.out) * (s.hp < 40 ? 1.6 : 1);
+  if (s.age >= 50 || rnd(s.seed, s.year, 'upout') < outP) {
+    const u = rnd(s.seed, s.year, 'exit');
+    const reason = u < 0.25 ? 'pe' : u < 0.55 ? 'cxo' : 'corp';
+    const d = exitGaishi(s, 'era', reason);
+    L(s, `アップ・オア・アウト。${G.name}を離れ、${s.job.split(' / ')[0]}へ移った。（年収 ${yen(d)}）`, 'event');
+    return;
+  }
+  g.n++;
+  const before = gaishiTitle(g, g.n - 1), after = gaishiTitle(g, g.n);
+  ch(s, 'routine', 'income', Math.round(gaishiPay(g, g.n, s.year - 1)) - s.income);
+  ch(s, 'era', 'income', Math.round(s.income * avgIdx(s.year) / avgIdx(s.year - 1)) - s.income);
+  s.job = `${G.name} / ${after}`;
+  if (after !== before) L(s, `${after}に昇格した。（年収 ${s.income.toLocaleString()}万円）`, 'event');
+}
+
+/* ---------- 乱数：年×用途で決まる（選択に依存しない＝パラレル比較で同じ時代の波になる） ---------- */
+function hashStr(str) { let h = 2166136261; for (const c of str) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function rnd(seed, year, salt) {
+  let h = (seed ^ Math.imul(year, 2654435761) ^ hashStr(salt)) >>> 0;
+  h = Math.imul(h ^ (h >>> 16), 2246822507);
+  h = Math.imul(h ^ (h >>> 13), 3266489909);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+
+/* ---------- 基本操作 ---------- */
+const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+const LIMITS = { hp:[0,100], autonomy:[0,100], workHours:[0,16], careHours:[0,10], skill:[0,150], adaptability:[0,150] };
+// 変化量の重み（寄与率の算出用）：1h/日の時間 ≒ 15万円、HP1% ≒ 3万円
+const WEIGHT = { income:1, pension:1, savings:0.3, hp:3, autonomy:2, skill:2, adaptability:2, workHours:15, careHours:15, livingBase:1, extraLiving:1 };
+
+// src: 'era'（時代と運）/ 'choice'（決断）/ 'routine'（加齢と積み重ね）
+function ch(s, src, key, d) {
+  const before = s[key];
+  let v = before + d;
+  const lim = LIMITS[key];
+  if (lim) v = clamp(v, lim[0], lim[1]);
+  v = Math.round(v);
+  s[key] = v;
+  s.impact[src] += Math.abs(v - before) * (WEIGHT[key] || 1);
+  return v - before;
+}
+const freeH = s => Math.max(0, 24 - (s.workHours + s.careHours + s.sleepHours));
+const takeHome = s => Math.round(Math.max(0, s.income) * taxRate(s.year) + s.pension * 0.9);
+// 生活費：基本＋子育て期＋物価上昇分＋収入に応じた生活水準の上昇
+// 生活費：基本＋住居費（30〜64歳）＋子育て期（35〜54歳）を賃金水準で調整、物価上昇分、収入に応じた生活水準の上昇
+// 子育て費は子どもがいる22年間だけ。子どもがいる場合はパートナーと家計を分担するとみなし、基本・住居・子育て費の6割を負担
+const kidYears = s => s.kidYear ? s.year - s.kidYear : -1;
+const livingCost = s => Math.round((s.livingBase + (s.age >= 30 && s.age < 65 ? 50 : 0) + (kidYears(s) >= 0 && kidYears(s) < 22 ? 100 : 0)) * avgIdx(s.year) * (s.kidYear ? 0.6 : 1))
+  + s.extraLiving + Math.round(Math.max(0, takeHome(s) - 280 * avgIdx(s.year)) * 0.55);
+const L = (s, text, type = '') => s.log.push({ year: s.year, text, type });
+const yen = v => `${v >= 0 ? '+' : ''}${v}万円`;
+
+/* ---------- 時代イベント ---------- */
+const active = s => !s.retired && !s.onBreak;   // 働いている（引退・育児休職中でない）
+const ERA = {
+  1990: { era:"バブル絶頂", text:"地価と株価が頂点。売り手市場で、内定を複数抱える同期も多い。" },
+  1991: { era:"バブル崩壊", event:"株価が急落。まだ誰も、これが長い停滞の始まりだとは気づいていない。" },
+  1993: { era:"就職氷河期の始まり", event:"新卒採用が急減。社内では昇給が鈍り始める。" },
+  1995: { era:"阪神・淡路大震災 / Windows 95", event:"震災が社会を揺さぶる一方、インターネットが一般家庭に届き始める。",
+    effect: s => { ch(s,'era','hp',-3); return "心身の余力 -3%"; }},
+  1997: { era:"金融危機", event:"山一證券・北海道拓殖銀行が破綻。終身雇用への信頼が揺らぐ。",
+    effect: s => { ch(s,'era','autonomy',-3); return "自律度 -3（会社任せの将来が見えなくなる）"; }},
+  1998: { era:"就職氷河期", event:"有効求人倍率は0.5倍台へ。新卒も中途も、椅子が足りない。" },
+  2000: { era:"ITバブルの頂点と崩壊", event:"ネット企業株が急騰し、やがて崩壊。それでも新興ITへ流れる若手は絶えない。" },
+  2004: { era:"構造改革・成果主義", event:"成果主義と非正規雇用の拡大が進む。",
+    effect: s => {
+      if (!active(s)) return null;
+      if (s.skill >= 55) { const d = ch(s,'era','income',15); return `専門性が評価された（年収 ${yen(d)}）`; }
+      if (s.size === '非正規') { ch(s,'era','autonomy',-3); return "非正規のまま、正社員との待遇差が広がる（自律度 -3）"; }
+      return null;
+    }},
+  2008: { era:"リーマン・ショック", event:"世界金融危機。賞与カットと採用凍結が決定。翌年、国内の平均給与は約5%落ち込む。",
+    effect: s => {
+      if (!active(s)) return null;
+      const cut = Math.round(s.income * 0.06 * (1 - Math.min(s.adaptability, 120) / 150));
+      const d = tempCut(s,'era',cut,2);
+      return `賞与カットで年収 ${yen(d)}（2年ほどで戻る。適応力が高いほど影響は小さい）`;
+    }},
+  2011: { era:"東日本大震災", event:"未曾有の震災。働き方や生き方の優先順位が揺らぐ。",
+    effect: s => { ch(s,'era','hp',-5); return "心身の余力 -5%"; }},
+  2013: { era:"アベノミクス", event:"株価が回復し、人手不足の兆し。転職市場が動き始める。" },
+  2016: { era:"働き方改革・DX", event:"残業規制とクラウド化が進展。リスキリングが叫ばれる。",
+    effect: s => { if (active(s) && s.workHours > 9) { ch(s,'era','workHours',-1); return "残業規制で労働時間 -1h"; } return null; }},
+  2020: { era:"コロナ・パンデミック", event:"緊急事態宣言。突如としてリモートワークへの移行を迫られる。",
+    effect: s => {
+      if (!active(s)) return null;
+      if (s.industry.key === 'retail') { const d = tempCut(s,'era',s.income * 0.08,2); ch(s,'era','hp',-5); return `客足が消え、年収 ${yen(d)}・心身の余力 -5%`; }
+      return null;
+    }},
+  2022: { era:"物価高", event:"エネルギーと食料の価格が上昇。実質賃金の低下が続く。",
+    effect: s => { ch(s,'era','extraLiving',15); return "生活費が年15万円上昇"; }},
+  2023: { era:"生成AIショック", event:"LLMの普及により、デスクワークの前提が音を立てて崩れ始める。",
+    effect: s => {
+      if (!active(s)) return null;
+      const ai = s.industry.ai;
+      if (s.adaptability >= 50) { const d = ch(s,'era','income',Math.round(30*ai)); return `適応力が活き、AIを使いこなして評価が上がった（年収 ${yen(d)}）`; }
+      const d = ch(s,'era','skill',-Math.round(15*ai)); return `既存スキルの価値が目減りした（専門スキル ${d}）`;
+    }},
+  2026: { era:"現代の境界線", boundary:true },
+  2030: { era:"自律型AI協働社会", event:"AIエージェントを使いこなす力が問われ、定型業務の多くが自動化される。",
+    effect: s => {
+      if (!active(s) || s.adaptability >= 50) return null;
+      const d = ch(s,'era','skill',-Math.round(15*s.industry.ai)); return `定型業務がAIに置き換わり、専門スキル ${d}`;
+    }},
+  2035: { era:"気候適応・物価高騰", event:"猛暑の常態化とインフラ維持コスト増。生活防衛の意識が急速に高まる。",
+    effect: s => { ch(s,'era','extraLiving',40); return "生活費が年40万円上昇"; }},
+  2040: { era:"2040年問題（超高齢化）", event:"現役世代の負担がピークに。社会保険料の引き上げと介護が重くのしかかる。",
+    effect: s => { if (s.age >= 40) { const d = ch(s,'era','careHours',1); if (d) s.careEnds.push({ year: 2048, h: d, src: 'era' }); return "家族の介護が始まり、ケア時間 +1h"; } return null; }},
+  2045: { era:"70歳現役社会", event:"定年という区切りが薄れ、プロジェクト単位で働き続ける人が増える。" },
+  2050: { era:"2050年", event:"人口減少と高齢化が進み、AIと共に働く社会が日常になった。" }
+};
+const ERA_YEARS = Object.keys(ERA).map(Number).sort((a, b) => a - b);
+function eraAt(y) { let name = ERA[ERA_YEARS[0]].era; for (const ey of ERA_YEARS) if (ey <= y) name = ERA[ey].era; return name; }
+
+/* ---------- 加齢イベント ---------- */
+function startPension(s) {
+  if (s.pension > 0) return;
+  const avg = s.stats.incomeSum / Math.max(1, s.stats.workYears);
+  // 厚生年金は標準報酬に上限があるため、計算に使う平均年収は800万円で頭打ち（年金は最大で年250万円弱）
+  ch(s,'routine','pension', Math.round((s.size === '非正規' ? 70 : 100) + Math.min(avg, 800) * 0.18));
+}
+function retire(s, src) {
+  s.retired = true;
+  ch(s, src, 'income', -s.income);
+  ch(s, src, 'workHours', -s.workHours);
+  s.job = '引退';
+  if (s.age >= 65) startPension(s);
+}
+// 60歳・65歳の賃金の段差は年齢カーブ側（統計の60-64歳・65-69歳の水準）で表現
+// 賃金の段差を免れる条件：60〜64歳は適応力80以上、65歳以降は独立して働く人だけ
+const keepsValue = s => s.independent || (s.age >= 60 && s.age < 65 && s.adaptability >= 80);
+const LIFE = {
+  50: s => {
+    if (s.retired || s.size === '非正規' || !s.onLadder || s.rank === '課長' || s.rank === '部長') return null;
+    return "50歳。管理職への道は閉じたと感じる。昇進した同期との差は、年収にも表れている。";
+  },
+  60: s => {
+    if (s.retired || s.size === '非正規') return null;
+    if (keepsValue(s)) return "60歳。役職定年を迎えたが、市場価値が高く処遇は維持された。";
+    if (s.rank) s.rank = '';
+    return "60歳。役職定年・再雇用の年齢。統計上、賃金はここで大きく下がる（大企業では2割強）。";
+  },
+  65: s => {
+    startPension(s);
+    const p = `年金の受給が始まった（年${s.pension}万円）。`;
+    if (s.retired) return `65歳。${p}`;
+    if (keepsValue(s)) return `65歳。${p}市場価値が高く、条件を落とさず働き続ける。`;
+    if (s.workHours > 8) ch(s,'routine','workHours', 8 - s.workHours);
+    s.rank = '';
+    if (!s.onLadder) return `65歳。${p}組織の定年とは関係なく、仕事を続けている。`;
+    s.job = s.job.replace(/ \/ .*$/, ' / 再雇用');
+    return `65歳。定年を迎え、再雇用で働く。${p}`;
+  },
+  70: s => {
+    if (s.retired) return null;
+    const cap = Math.round(Math.max(stdIncome(s.year, s.age, '大手'), Math.min(s.income * 0.5, 800 * avgIdx(s.year))));
+    if (s.income <= cap) return null;
+    const d = ch(s,'routine','income', cap - s.income);
+    return `70歳。第一線を退き、顧問として関わる働き方になった。（年収 ${yen(d)}）`;
+  },
+  75: s => {
+    if (s.retired) return null;
+    retire(s, 'routine');
+    return "75歳。体力の限界を感じ、仕事を手放した。";
+  }
+};
+
+/* ---------- リストラ（時代と運） ---------- */
+function layoffCheck(s) {
+  if (s.gaishi || s.onBreak) return;
+  if (s.retired || s.age >= 65 || s.age < 23) return;
+  const sz = SIZES[s.size].layoff;
+  const f = (s.year >= 2030 && s.year <= 2034) ? s.industry.ai * 1.5 * sz : s.industry.layoff * sz;
+  const p = layoffBase(s.year) * f * (1 - Math.min(s.adaptability, 150) / 200);
+  if (rnd(s.seed, s.year, 'layoff') >= p) return;
+  s.stats.layoffs++;
+  const r = jobRatio(s.year);
+  L(s, `勤め先の業績悪化で、リストラの対象になった。（有効求人倍率 ${r.toFixed(2)}倍）`, 'warn');
+  ch(s,'era','hp',-10);
+  ch(s,'era','autonomy',-10);
+  const okP = clamp(r * 0.5 + s.adaptability / 200, 0.1, 0.9);
+  if (rnd(s.seed, s.year, 'rehire') < okP) {
+    const d = ch(s,'era','income',-Math.round(s.income * 0.1));
+    s.venture = false; s.company = null;
+    // 転職先では前職相当の役職から。役職のない専門職からの転職は、経験に応じて係長相当
+    if (!s.rank && s.age >= 35 && s.skill >= 50) s.rank = '係長';
+    if (!s.onLadder) { s.onLadder = true; s.job = jobTitle(s.industry, s.size); }
+    L(s, `→ 再就職先が見つかった。年収 ${yen(d)}`, 'effect');
+  } else {
+    const target = Math.round(stdIncome(s.year, s.age, '非正規') * Math.sqrt(s.industry.mul));
+    const d = ch(s,'era','income', target - s.income);
+    s.size = '非正規'; s.rank = ''; s.onLadder = true; s.venture = false; s.company = null;
+    s.job = jobTitle(s.industry, s.size);
+    L(s, `→ 正社員の職が見つからず、契約社員として働くことに。年収 ${yen(d)}`, 'effect');
+  }
+}
+
+/* ---------- 決断 ---------- */
+const TAGS = { stable:"安定", adapt:"適応", earn:"稼ぐ", care:"ケア" };
+const workedYears = s => s.year - s.startYear;
+
+const DECISIONS = {
+  1993: s => (workedYears(s) >= 1 && !s.retired) ? {
+    title:`1993年（${s.age}歳）：バブル崩壊後の配置転換`,
+    desc:"業績悪化を受けて、地方の子会社への出向を打診された。",
+    options:[
+      { key:'accept', text:"出向を受け入れ、会社に残る", short:"出向を受け入れた", tag:'stable',
+        effect: s => { ch(s,'choice','income',10); ch(s,'choice','hp',-5); ch(s,'choice','skill',5); L(s,"慣れない土地で、現場の仕事を一から覚える。",'choice'); }},
+      { key:'study', text:"出向は断り、夜間に資格の勉強を始める", short:"資格の勉強を始めた", tag:'adapt', req:{ free:2 },
+        effect: s => { ch(s,'choice','skill',15); ch(s,'choice','adaptability',10); ch(s,'choice','savings',-40); ch(s,'choice','hp',-5); L(s,"社内での評価は下がったが、手に職をつける道を選んだ。",'choice'); }}
+    ]} : null,
+
+  2003: s => (workedYears(s) >= 1 && s.age <= 40 && !s.retired) ? {
+    title:`2003年（${s.age}歳）：IT新興企業からの誘い`,
+    desc:"ネット系ベンチャーが台頭する中、知人から『給与は下がるがWebビジネスの立ち上げに来ないか』と誘われた。",
+    options:[
+      { key:'stay', text:"今の職場に残り、着実に専門性を深める", short:"今の職場に残った", tag:'stable',
+        effect: s => { ch(s,'choice','skill',10); ch(s,'choice','income',15); L(s,"足場を固める選択をした。専門知識が深まる。",'choice'); }},
+      { key:'venture', text:"リスクを取りITベンチャーへ転職する", short:"ITベンチャーへ転職", tag:'adapt', req:{ hp:50 },
+        effect: s => { ch(s,'choice','adaptability',25); ch(s,'choice','income',-30); ch(s,'choice','workHours',2);
+          s.industry = INDUSTRIES.find(i => i.key === 'it'); s.size = '中小'; s.job = "ITベンチャー / ディレクター";
+          s.venture = true; s.onLadder = false; s.company = null; s.rank = '';
+          L(s,"怒涛のベンチャーへ。激務だが時代の先端で適応力を磨く。",'choice'); }}
+    ]} : null,
+
+  2008: s => (workedYears(s) >= 1 && !s.retired) ? {
+    title:`2008年（${s.age}歳）：リーマンショックの激震`,
+    desc:"会社全体の業績が急悪化。給与が減る中、どう時間を過ごすか？",
+    options:[
+      { key:'defend', text:"社内業務の立て直しに奔走し、立場を守る", short:"社内で立場を守った", tag:'stable',
+        effect: s => { ch(s,'choice','hp',-15); ch(s,'choice','income',20); L(s,"疲弊しながらも社内での信頼を勝ち取った。",'choice'); }},
+      { key:'study', text:"空いた時間で新しい専門スキルの勉強に投資する", short:"学びに投資した", tag:'adapt', req:{ free:2 },
+        effect: s => { ch(s,'choice','skill',20); ch(s,'choice','adaptability',15); ch(s,'choice','savings',-30); L(s,"給与減を自己投資の好機と捉え、学習に時間を充てた。",'choice'); }}
+    ]} : null,
+
+  2013: s => (workedYears(s) >= 1 && s.age <= 45 && !s.retired) ? {
+    title:`2013年（${s.age}歳）：動き始めた転職市場`,
+    desc:"景気回復の兆しで、求人が増え始めた。今の場所で根を張るか、外を目指すか。",
+    options:[
+      { key:'jobhunt', text:"条件のいい会社への転職活動をする", short:"転職活動をした", tag:'earn', req:{ hp:40 },
+        effect: s => {
+          ch(s,'choice','hp',-5);
+          const p = clamp(jobRatio(2013) * 0.4 + s.skill / 150, 0.1, 0.9);
+          if (rnd(s.seed, 2013, 'jobhunt') < p) {
+            if (s.size === '非正規') { s.size = '中小'; s.company = null; ch(s,'era','income',80); ch(s,'era','autonomy',5); L(s,"転職活動の末、正社員として採用された。",'choice'); }
+            else if (s.skill >= 65) {
+              enterGaishi(s, 'mbb', 3);
+              const d = ch(s,'era','income', Math.round(gaishiPay(s.gaishi, 3, s.year)) - s.income);
+              L(s,`外資系戦略コンサルに中途で入社した。（年収 ${yen(d)}）`,'choice'); return;
+            }
+            else if (s.skill >= 55) {
+              s.size = '大手'; s.onLadder = false; s.company = null; s.rank = ''; s.job = "外資系企業 / スペシャリスト";
+              const d = ch(s,'era','income', Math.min(Math.round(s.income * 0.35), 400)); L(s,`専門性を買われ、外資系企業に移籍した。（年収 ${yen(d)}）`,'choice'); return;
+            }
+            else { s.size = s.size === '中小' ? '中堅' : '大手'; ch(s,'era','income',60); L(s,"より条件のいい会社から内定を得て、移籍した。",'choice'); }
+            s.onLadder = true; s.rank = ''; s.company = null;
+            s.job = jobTitle(s.industry, s.size);
+          } else { ch(s,'era','autonomy',-5); L(s,"何社も受けたが、内定は得られなかった。",'choice'); }
+        }},
+      { key:'grow', text:"今の職場で、仕事の裁量を広げる", short:"今の職場で裁量を広げた", tag:'stable',
+        effect: s => { ch(s,'choice','skill',8); ch(s,'choice','autonomy',8); L(s,"自分で仕事を設計できる範囲が少しずつ広がっていく。",'choice'); }}
+    ]} : null,
+
+  2020: s => (workedYears(s) >= 1 && !s.retired) ? {
+    title:`2020年（${s.age}歳）：リモートワークと生活の再編`,
+    desc:"突如訪れた在宅勤務。通勤時間が浮いたことで、1日の配分を見直すチャンスが訪れた。",
+    options:[
+      { key:'care', text:"余白を家族や自身の健康維持に振り向ける", short:"家族と健康に時間を使った", tag:'care',
+        effect: s => { ch(s,'choice','hp',20); ch(s,'choice','careHours',2); ch(s,'choice','workHours',-2); L(s,"家族との夕食とジョギングが日課になり、心身の余力が回復。",'choice'); }},
+      { key:'sidegig', text:"オンライン副業を始めて収入源を分散する", short:"副業を始めた", tag:'earn', req:{ hp:40, free:2 },
+        effect: s => { ch(s,'choice','income',60); ch(s,'choice','adaptability',15); ch(s,'choice','workHours',1); s.sidegig = true; L(s,"個人の力で稼ぐ術を身につけ、収入の柱を増やした。",'choice'); }}
+    ]} : null,
+
+  2026: s => ({
+    title:`2026年（${s.age}歳）：境界線の先へ、何を持っていくか`,
+    desc:"ここから先は誰も経験していない未来。残りの可処分時間とエネルギーを、どこへ配分しますか？",
+    options:[
+      { key:'relearn', text:"学び直しに投資し、次の波に備える", short:"学び直しに投資した", tag:'adapt', req:{ free:2 },
+        effect: s => { ch(s,'choice','skill',10); ch(s,'choice','adaptability',20); ch(s,'choice','hp',-5); L(s,"慣れない分野に頭を使う、学び直しの日々が始まる。",'choice'); }},
+      { key:'health', text:"健康と人間関係を立て直す", short:"健康と関係を立て直した", tag:'care',
+        effect: s => { ch(s,'choice','hp',15); if (!s.retired) ch(s,'choice','workHours',-1); ch(s,'choice','careHours',1); L(s,"仕事の比重を少し下げ、体と身近な人との時間を取り戻した。",'choice'); }},
+      { key:'earn', text:"稼げるうちに稼ぎ、資産を厚くする", short:"稼ぐことを優先した", tag:'earn', req:{ hp:30 },
+        effect: s => { if (!s.retired) { ch(s,'choice','income',40); ch(s,'choice','workHours',1); } else ch(s,'choice','savings',30); L(s,"先の不安に備え、収入を最大化する働き方に舵を切った。",'choice'); }}
+    ]}),
+
+  2030: s => (!s.retired && s.age <= 64) ? {
+    title:`2030年（${s.age}歳）：自律型AIへのシフト`,
+    desc:"かつて手作業で行っていた業務のほとんどを、AIエージェントが自律処理するようになった。",
+    options:[
+      { key:'orchestrate', text:"AIの統括者となり、1人でチーム分の成果を出す", short:"AIの統括者になった", tag:'adapt', req:{ hp:40, adapt:60 },
+        effect: s => { ch(s,'choice','adaptability',30); ch(s,'choice','income',Math.min(Math.round(s.income * 0.25), 300)); ch(s,'choice','workHours',1);
+          s.job = "AIオーケストレーター"; s.onLadder = false; s.company = null; s.rank = ''; L(s,"AIオーケストレーターとして市場価値を急上昇させた。",'choice');
+          if (rnd(s.seed, 2030, 'orchestrate') < 0.2) { const d = ch(s,'era','income', Math.min(Math.round(s.income * 0.4), 500)); L(s,`率いたAIチームの成果が業界で評判になり、引き抜きが相次いだ。（年収 ${yen(d)}）`,'choice'); } }},
+      { key:'human', text:"画面の仕事から離れ、対人・現場・ケアの領域へ", short:"対人・現場の仕事へ移った", tag:'care',
+        effect: s => { s.job = "組織カウンセラー / 現場調整"; s.onLadder = false; s.company = null; s.rank = ''; s.gaishi = null;
+          ch(s,'choice','income', Math.round(Math.min(s.income * 0.88, Math.max(stdIncome(s.year, s.age, '中堅') * 1.2, s.income * 0.5))) - s.income); ch(s,'choice','hp',10); L(s,"人間同士の対話や現場の感情を支える役割へ軸足を移した。",'choice'); }}
+    ]} : null,
+
+  2035: s => ({
+    title:`2035年（${s.age}歳）：暮らしのサイズを見直す`,
+    desc:"物価と猛暑対策のコストがかさみ続ける。暮らしの形をどうするか。",
+    options:[
+      { key:'downsize', text:"地方や小さな家へ移り、生活費を下げる", short:"暮らしを小さくした", tag:'care',
+        effect: s => { ch(s,'choice','livingBase',-40); ch(s,'choice','hp',5); ch(s,'choice','autonomy',5); if (!s.retired) ch(s,'choice','income',-20); L(s,"暮らしを小さくし、手元に残る時間と余裕を増やした。",'choice'); }},
+      { key:'city', text:"都市に残り、仕事の機会を取り続ける", short:"都市に残った", tag:'earn',
+        effect: s => { if (!s.retired) ch(s,'choice','income',20); ch(s,'choice','hp',-3); L(s,"コストを払ってでも、機会の多い場所に留まった。",'choice'); }}
+    ]}),
+
+  2040: s => (s.age >= 40 && !s.retired) ? {
+    title:`2040年（${s.age}歳）：介護と現役続行の壁`,
+    desc: s.age >= 68 ? "パートナーの介護が必要になり、社会保険料の上昇で手取りが目減りしている。"
+                      : "親のダブル介護が必要になり、社会保険料の上昇で手取りが目減りしている。",
+    options:[
+      { key:'outsource', text:"貯蓄を崩して外部ケアを雇い、仕事を続ける", short:"外部ケアを使い仕事を続けた", tag:'earn', req:{ hp:35, savings:180 },
+        effect: s => { ch(s,'choice','savings',-180); ch(s,'choice','income',60); ch(s,'choice','careHours',-1); L(s,"貯蓄を削りながらも、仕事の第一線に踏みとどまる。",'choice'); }},
+      { key:'slow', text:"週3日勤務にして、家族のケアに寄り添う", short:"週3日にして家族に寄り添った", tag:'care',
+        effect: s => { const dc = ch(s,'choice','careHours',3); if (dc) s.careEnds.push({ year: 2048, h: dc, src: 'choice' }); ch(s,'choice','workHours',-4); ch(s,'choice','income',-Math.round(s.income * 0.4)); L(s,"人生のペースを緩め、家族との時間を最優先にした。",'choice'); }}
+    ]} : null,
+
+  2045: s => {
+    if (s.retired) return null;
+    if (s.age >= 60) return {
+      title:`2045年（${s.age}歳）：70歳現役社会`,
+      desc:"定年という区切りは薄れた。働き続けることも、降りることもできる。",
+      options:[
+        { key:'continue', text:"プロジェクト単位で働き続ける", short:"働き続けた", tag:'earn', req:{ hp:40 },
+          effect: s => {
+            ch(s,'choice','autonomy',5); ch(s,'choice','hp',-3);
+            // プロジェクト単位の仕事は、現役時代より収入が下がる
+            const cap = Math.round(Math.max(stdIncome(s.year, s.age, '大手') * 1.2, Math.min(s.income * 0.6, 1000 * avgIdx(s.year))));
+            if (s.income > cap) ch(s,'choice','income', cap - s.income);
+            L(s,"肩書きを手放し、頼まれた仕事を一つずつ引き受けていく。",'choice'); }},
+        { key:'retire', text:"仕事を手放し、引退する", short:"引退した", tag:'care',
+          effect: s => { retire(s,'choice'); ch(s,'choice','hp',10); L(s,"長い職業人生に、自分で区切りをつけた。",'choice'); }}
+      ]};
+    if (workedYears(s) < 1) return null;
+    return {
+      title:`2045年（${s.age}歳）：一人称組織の時代`,
+      desc:"AIを率いて一人で事業を回す人が当たり前になった。組織にいる意味が問い直されている。",
+      options:[
+        { key:'independent', text:"会社を離れ、AIを率いて独立する", short:"独立した", tag:'adapt', req:{ adapt:60, hp:40 },
+          effect: s => {
+            ch(s,'choice','autonomy',10); ch(s,'choice','workHours',1);
+            s.job = "独立 / AIを率いる個人事業"; s.onLadder = false; s.company = null; s.rank = ''; s.independent = true;
+            if (rnd(s.seed, 2045, 'independent') < clamp(0.2 + s.adaptability / 300, 0.2, 0.7)) {
+              const d = ch(s,'era','income', Math.min(Math.round(s.income * 0.6), 600)); L(s,`独立は当たった。顧客が途切れない。（年収 ${yen(d)}）`,'choice');
+            } else {
+              const d = ch(s,'era','income', -Math.round(s.income * 0.25)); L(s,`独立したが、仕事は思うように集まらない。（年収 ${yen(d)}）`,'choice');
+            }
+          }},
+        { key:'mentor', text:"組織に残り、後進の育成に回る", short:"組織で育成に回った", tag:'stable',
+          effect: s => { ch(s,'choice','skill',5); ch(s,'choice','hp',3); L(s,"自分が得てきたものを、次の世代に渡す役割に就いた。",'choice'); }}
+      ]};
+  }
+};
+
+// 30歳で迎える分岐：子どもを持つか。結果は性別と時代で大きく変わる
+function startBreak(s, src, years) {
+  s.onBreak = true; s.breakUntil = s.year + years;
+  ch(s, src, 'income', -s.income);
+  ch(s, src, 'workHours', -s.workHours);
+  s.rank = ''; s.company = null; s.gaishi = null;
+  s.job = '育児に専念';
+}
+function reentry(s) {
+  s.onBreak = false; s.breakUntil = 0;
+  const pJob = clamp(jobRatio(s.year) * 0.4 + 0.05, 0.08, 0.6);
+  if (rnd(s.seed, s.year, 'reentry') < pJob) {
+    s.size = '中小'; s.onLadder = true;
+    const target = Math.round(stdIncome(s.year, s.age, '中小') * s.industry.mul * genderWage(s.gender, s.year) * 0.9);
+    ch(s, 'era', 'income', target - s.income); ch(s, 'era', 'workHours', 9 - s.workHours);
+    s.job = jobTitle(s.industry, s.size);
+    L(s, `正社員として仕事に戻ることができた。（年収 ${s.income}万円）`, 'event');
+  } else {
+    s.size = '非正規'; s.onLadder = true;
+    const target = Math.round(stdIncome(s.year, s.age, '非正規') * 0.7);
+    ch(s, 'era', 'income', target - s.income); ch(s, 'era', 'workHours', 6 - s.workHours);
+    s.job = `${s.industry.name} / パート`;
+    L(s, `正社員の職は見つからず、パートで仕事に戻った。（年収 ${s.income}万円）`, 'event');
+  }
+}
+function haveChild(s, careH, src) {
+  s.kidYear = s.year;
+  const d = ch(s, src, 'careHours', careH);
+  // 子どもの手が離れるにつれてケア時間は減る
+  if (d >= 2) { s.careEnds.push({ year: s.year + 6, h: Math.floor(d / 2), src, msg: "子どもが小学校に上がり、少し手が離れた。" }); s.careEnds.push({ year: s.year + 12, h: d - Math.floor(d / 2), src, msg: "子どもが中学生になり、育児の手が離れてきた。" }); }
+  else if (d > 0) s.careEnds.push({ year: s.year + 12, h: d, src, msg: "子どもが中学生になり、育児の手が離れてきた。" });
+}
+function lifeDecision(s) {
+  const female = s.gender === '女性';
+  const cr = continueRate(s.year), ml = maleLeaveRate(s.year);
+  const working = !s.retired && !s.onBreak && s.income > 0;
+  const opts = [];
+  if (working) {
+    opts.push({ key: 'kid-work', text: "子どもを持ち、仕事を続ける", short: "子どもを持ち、仕事を続けた", tag: 'earn',
+      effect: s => {
+        if (s.gender === '女性') {
+          // 両立できるかは時代と職場しだい
+          const adj = (s.size === '大手' || s.industry.key === 'public') ? 0.15 : s.size === '中小' ? -0.05 : s.size === '非正規' ? -0.25 : 0;
+          const p = clamp(continueRate(s.year) + adj, 0.1, 0.97);
+          if (rnd(s.seed, s.year, 'continue') < p) {
+            haveChild(s, 3, 'choice');
+            tempCut(s, 'era', s.income * 0.3, 1);
+            const dw = ch(s, 'era', 'workHours', -2); if (dw) s.workRestore = { year: s.year + 6, h: -dw };
+            s.promoPenalty = { until: s.year + 7, mul: 0.5 };
+            L(s, `第1子が生まれた。育休を取り、時短勤務で仕事に戻った。（この頃、出産後も働き続けた女性は約${pctText(continueRate(s.year))}）`, 'choice');
+          } else {
+            haveChild(s, 4, 'era');
+            startBreak(s, 'era', 4);
+            L(s, `第1子が生まれた。両立の壁は厚く、仕事を辞めることになった。（この頃、出産後も働き続けた女性は約${pctText(continueRate(s.year))}）`, 'warn');
+          }
+        } else {
+          haveChild(s, 1, 'choice');
+          L(s, `第1子が生まれた。育児の多くはパートナーが担い、仕事中心の生活は変わらなかった。（この年の男性の育休取得率は約${pctText(maleLeaveRate(s.year))}）`, 'choice');
+        }
+      }});
+    opts.push({ key: 'kid-care', text: female ? "子どもを持ち、いったん仕事を離れて育児に専念する" : "子どもを持ち、育休を取って育児を担う",
+      short: female ? "子どもを持ち、育児に専念した" : "子どもを持ち、育休を取った", tag: 'care',
+      effect: s => {
+        if (s.gender === '女性') {
+          haveChild(s, 4, 'choice');
+          startBreak(s, 'choice', 3);
+          L(s, "第1子が生まれた。いったん仕事を離れ、育児に専念することにした。", 'choice');
+        } else {
+          const rate = maleLeaveRate(s.year);
+          haveChild(s, 3, 'choice');
+          tempCut(s, 'choice', s.income * 0.15, 1);
+          ch(s, 'choice', 'workHours', -1); ch(s, 'choice', 'autonomy', 5); ch(s, 'choice', 'hp', 5);
+          s.promoPenalty = rate < 0.1 ? { until: s.year + 6, mul: 0.6 } : { until: s.year + 3, mul: 0.9 };
+          L(s, `第1子が生まれた。育休を取り、育児を担った。（この年の男性の育休取得率は約${pctText(rate)}）`, 'choice');
+          if (rate < 0.1) L(s, "→ 職場に前例はほとんどなく、評価や昇進への影響も小さくなかった。", 'effect');
+        }
+      }});
+  } else {
+    opts.push({ key: 'kid-work', text: "子どもを持つ", short: "子どもを持った", tag: 'care',
+      effect: s => { haveChild(s, 3, 'choice'); L(s, "第1子が生まれた。", 'choice'); }});
+  }
+  opts.push({ key: 'nokid', text: "子どもは持たない（今は考えない）", short: "子どもを持たなかった", tag: 'stable',
+    effect: s => { L(s, "子どもは持たない人生を選んだ。", 'choice'); }});
+  return {
+    id: 'life', year: s.year,
+    title: `${s.year}年（${s.age}歳）：子どもを持つか`,
+    desc: female
+      ? `この頃、第1子の出産後も仕事を続けられた女性は約${pctText(cr)}。働き続けたい気持ちと、職場の現実の間で。`
+      : `この年の男性の育休取得率は約${pctText(ml)}。育児をどこまで担うかで、働き方が変わる。`,
+    options: opts
+  };
+}
+
+const QUESTIONS = {
+  30: { q:"30歳。ここまでの働き方は、自分で選んだものだと思いますか？", options:["自分で選んだ","時代や状況に流された","まだわからない"] },
+  40: { q:"40歳。もし22歳の自分に会えるなら、同じ道を勧めますか？", options:["勧める","勧めない","わからない"] }
+};
+
+function reqReason(s, req) {
+  if (!req) return null;
+  const lacks = [];
+  if (req.hp && s.hp < req.hp) lacks.push(`HP ${req.hp}%以上`);
+  if (req.adapt && s.adaptability < req.adapt) lacks.push(`適応力 ${req.adapt}以上`);
+  if (req.skill && s.skill < req.skill) lacks.push(`専門スキル ${req.skill}以上`);
+  if (req.free && freeH(s) < req.free) lacks.push(`余白 ${req.free}h以上`);
+  if (req.savings && s.savings < req.savings) lacks.push(`資産 ${req.savings}万円以上`);
+  return lacks.length ? `条件未達：${lacks.join("・")}が必要` : null;
+}
+
+function applyChoice(s, dec, opt) {
+  const enabled = dec.options.filter(o => !reqReason(s, o.req));
+  const alts = dec.options.filter(o => o.key !== opt.key).map(o => ({ key:o.key, short:o.short, locked: !!reqReason(s, o.req) }));
+  const jobBefore = s.job;
+  opt.effect(s);
+  if (s.gaishi && s.job !== jobBefore && !s.job.startsWith(GAISHI[s.gaishi.track].name)) {
+    // 外資系を自分の意思で離れたら、移った先の水準まで年収を下げる
+    s.gaishi = null;
+    const target = Math.round(Math.max(stdIncome(s.year, s.age, '大手') * 1.6, s.income * 0.4));
+    if (s.income > target) { const d = ch(s, 'choice', 'income', target - s.income); L(s, `→ 外資系を離れ、年収 ${yen(d)}`, 'effect'); }
+  }
+  if (enabled.length <= 1) { ch(s,'routine','autonomy',-8); L(s,"→ 他の道は選べなかった。（自律度 -8）",'effect'); }
+  else ch(s,'choice','autonomy',3);
+  s.choices.push({ year: dec.year, id: dec.id || String(dec.year), key: opt.key, short: opt.short, tag: opt.tag, alts });
+}
+
+/* ---------- 昇進と、成功のパターン ---------- */
+function promote(s, rank) {
+  const ratio = rankFactor(rank, s.age, s.size) / rankFactor(s.rank, s.age, s.size);
+  const d = ch(s,'routine','income', Math.round(s.income * ratio) - s.income);
+  s.rank = rank;
+  s.stats.promotions.push({ year: s.year, rank });
+  return d;
+}
+function careerEvents(s) {
+  const y = s.year;
+  if (s.retired) return;
+
+  // 昇進：ポスト不足の時代（1993〜2012）と中間管理職が減る時代（2030〜）は狭き門
+  if (s.onLadder && s.size !== '非正規' && s.age < 60 && !s.onBreak) {
+    const eraP = ((y >= 1993 && y <= 2012) ? 0.7 : y >= 2030 ? 0.6 : 1.0)
+      * (s.gender === '女性' ? lerpPts(FEMALE_PROMO_PTS, y) : 1)
+      * (s.promoPenalty && y < s.promoPenalty.until ? s.promoPenalty.mul : 1);
+    const hpP = s.hp >= 40 ? 1 : 0.5;
+    const sk = Math.max(0.3, s.skill / 50);
+    const u = rnd(s.seed, y, 'promo');
+    if (!s.rank && s.age >= 30 && s.age <= 40 && u < 0.18 * sk * hpP) {
+      promote(s, '係長'); L(s, `係長に昇進した。`, 'event');
+    } else if (s.rank === '係長' && s.age >= 38 && s.age <= 49 && u < 0.08 * sk * SIZES[s.size].promo * eraP * hpP) {
+      const d = promote(s, '課長'); L(s, `課長に昇進した。（年収 ${yen(d)}）`, 'event');
+    } else if (s.rank === '課長' && s.age >= 46 && s.age <= 56 && u < 0.06 * (s.skill / 60) * SIZES[s.size].promo * eraP * hpP) {
+      const d = promote(s, '部長'); L(s, `部長に昇進した。（年収 ${yen(d)}）`, 'event');
+    }
+  }
+
+  // ベンチャーの行方：IPOか、倒産か
+  if (s.venture && y >= 2005 && y <= 2012) {
+    const u = rnd(s.seed, y, 'venture');
+    const failP = (y === 2008 || y === 2009) ? 0.14 : 0.06;
+    if (u < 0.05) {
+      s.venture = false;
+      const gain = Math.round(1500 + rnd(s.seed, y, 'ipo') * 3500);
+      ch(s,'era','savings', gain); ch(s,'era','income', Math.min(Math.round(s.income * 0.3), 300)); ch(s,'era','autonomy', 10);
+      s.job = "上場企業 / 創業メンバー";
+      L(s, `勤めるベンチャーが株式上場を果たした。ストックオプションで資産 +${gain}万円。`, 'choice');
+    } else if (u < 0.05 + failP) {
+      s.venture = false;
+      ch(s,'era','hp',-10); ch(s,'era','autonomy',-5);
+      const target = Math.round(stdIncome(y, s.age, '中小') * s.industry.mul);
+      const d = ch(s,'era','income', target - s.income);
+      s.size = '中小'; s.onLadder = true; s.company = null; s.job = jobTitle(s.industry, s.size);
+      L(s, `勤めるベンチャーが資金繰りに行き詰まり、倒産した。中小企業に転職（年収 ${yen(d)}）。`, 'warn');
+    }
+  }
+
+  // 副業が事業になる
+  if (s.sidegig && y >= 2021 && y <= 2032 && rnd(s.seed, y, 'sidegig') < 0.07) {
+    s.sidegig = false;
+    const d = ch(s,'era','income', 150); ch(s,'era','autonomy', 8);
+    L(s, `副業が事業として軌道に乗った。（年収 ${yen(d)}）`, 'choice');
+  }
+
+  const inc = s.income + s.pension;
+  if (inc > s.stats.peakIncome) s.stats.peakIncome = inc;
+  if (s.income >= 1000 * avgIdx(y)) s.stats.over1000++;   // 2025年の賃金水準に換算して1,000万円超
+}
+
+/* ---------- 世界の生成と1年の進行 ---------- */
+function newWorld(seed, startYear, genderArg) {
+  // 配属の運は年に依存しない乱数で引く（同じ運の人が別の年に生まれたら、という比較を成り立たせるため）
+  const R = salt => rnd(seed, 0, salt);
+  const r0 = jobRatio(startYear);
+  const field = R('field') < 0.5 ? '文系' : '理系';
+  let ind = pickIndustry(R('industry'));
+  const gender = genderArg || (R('gender') < 0.5 ? '男性' : '女性');
+  // 女性は非正規で社会に出る割合が高い
+  const pNon = clamp((0.35 - 0.2 * r0) * (gender === '女性' ? 1.3 : 1), 0.05, 0.42);
+  const pBig = clamp(0.08 + 0.14 * r0, 0.10, 0.35);
+  const u = R('size');
+  let size = u < pNon ? '非正規' : u < pNon + pBig ? '大手' : u < pNon + pBig + 0.4 ? '中堅' : '中小';
+  // 人気企業への入社：求人倍率が高い年ほど届きやすい
+  const ranking = RANKINGS[startYear];
+  const list = ranking ? ranking[field === '文系' ? 'bun' : 'ri'] : null;
+  let company = null, companyRank = 0;
+  if (list && size !== '非正規' && R('popular') < clamp(0.04 + 0.08 * r0, 0.06, 0.18)) {
+    companyRank = 1 + Math.floor(R('company') * list.length);
+    company = list[companyRank - 1];
+    size = '大手';
+  }
+  if (company) ind = INDUSTRIES.find(i => i.key === companyIndustry(company));
+  // ごく一部は外資系投資銀行・戦略コンサルへ（エクストリームケース）
+  const gaishiTrack = (size !== '非正規' && !company && R('gaishi') < 0.02 + 0.01 * r0) ? (R('gaishi-track') < 0.45 ? 'ib' : 'mbb') : null;
+  const stdStart = startIncome(startYear, size, ind) * (field === '理系' ? 1.02 : 1);
+  const cStart = companyStart(company, startYear);
+  const income = Math.round((cStart ? cStart * 13.5 / 10 : stdStart) * (gender === '女性' ? 0.98 : 1));
+  // 初任給の高い会社は、その後も平均より高い水準が続くとみなす
+  const payPremium = cStart ? Math.max(1, (cStart * 13.5 / 10) / stdStart) : 1;
+  const s = {
+    seed, startYear, year: startYear, age: 22, gender, field, industry: ind, size, company, companyRank,
+    kidYear: 0, onBreak: false, breakUntil: 0, promoPenalty: null, workRestore: null,
+    job: company ? `${company} / ${ind.key === 'public' || /放送協会/.test(company) ? '職員' : '総合職'}` : jobTitle(ind, size),
+    income, pension: 0, savings: 30, hp: 85,
+    skill: ind.skill + (field === '理系' ? 5 : 0) - (size === '非正規' ? 5 : 0),
+    adaptability: ind.adapt, autonomy: size === '非正規' ? 30 : 40,
+    workHours: ind.work, careHours: 2, sleepHours: 7, livingBase: 200, extraLiving: 0,
+    retired: false, lowWarned: false, ended: false,
+    rank: '', onLadder: true, venture: false, sidegig: false, independent: false, careEnds: [], tempCuts: [], payPremium, gaishi: null,
+    impact: { era: 0, choice: 0, routine: 0 },
+    choices: [], answers: [], queue: [], log: [], series: [],
+    stats: { freeSum: 0, years: 0, hpMin: 85, deficitYears: 0, burnout: 0, layoffs: 0, lifeTakeHome: 0, incomeSum: 0, workYears: 0, peakIncome: income, over1000: 0, promotions: [] }
+  };
+  // 配属の運：同じ年の基準（製造業・中堅・正社員）との差を「時代と運」に計上
+  s.impact.era += Math.abs(income - startIncome(startYear, '中堅', INDUSTRIES[0])) + (size === '非正規' ? 60 : 0);
+  const e = ERA[startYear];
+  if (e) L(s, e.event || e.text, 'event');
+  // 入社年までに起きていた社名変更を反映
+  if (company) for (const ev of COMPANY_EVENTS) if (ev.to && ev.year <= startYear && ev.re.test(s.company)) renameCompany(s, ev.to);
+  if (gaishiTrack) {
+    enterGaishi(s, gaishiTrack, 1);
+    s.income = Math.round(gaishiPay(s.gaishi, 1, startYear));
+    s.stats.peakIncome = s.income;
+  }
+  L(s, `${startYear}年卒・${field}・${gender}。有効求人倍率${r0.toFixed(2)}倍の年に、${s.job}として社会に出る。`);
+  if (gaishiTrack) L(s, `ごく一握りの同世代しか届かない${GAISHI[gaishiTrack].name}に入った。初年度から年収${s.income.toLocaleString()}万円。`, 'choice');
+  if (cStart) L(s, `初任給は月${(cStart / 10).toFixed(1)}万円。初任給引き上げ競争の真っただ中だった。`, 'effect');
+  // 2026年に社会に出た場合は、入社と同時に境界線の分岐を迎える
+  if (startYear === 2026) { s.queue.push({ kind: 'boundary' }); const dec = DECISIONS[2026](s); dec.year = 2026; s.queue.push({ kind: 'decision', dec }); }
+  if (company) L(s, `この年の${field}人気企業ランキング${companyRank}位、${company}への入社をつかんだ。`, 'choice');
+  recordSeries(s);
+  return s;
+}
+
+function recordSeries(s) {
+  s.series.push({ year: s.year, age: s.age, takeHome: takeHome(s), hp: s.hp, free: freeH(s), autonomy: s.autonomy, savings: s.savings });
+}
+
+function advance(s) {
+  const logStart = s.log.length;
+  s.year++; s.age++;
+
+  // 賃金の推移：統計の年齢カーブに沿う分は「加齢と積み重ね」、年ごとの賃金水準の変化は「時代」
+  if (s.gaishi && !s.retired) gaishiYear(s);
+  else if (!s.retired && !s.onBreak && s.income > 0) {
+    const y0 = s.year - 1, a0 = s.age - 1;
+    if (s.age === 23 && s.onLadder) {
+      // 2年目から賞与が満額になり、統計上の年齢カーブに乗る
+      const mul = (s.size === '非正規' ? Math.sqrt(s.industry.mul) : s.industry.mul * (s.field === '理系' ? 1.02 : 1) * s.payPremium) * genderWage(s.gender, y0);
+      ch(s,'routine','income', Math.round(stdIncome(y0, 23, s.size) * mul) - s.income);
+    } else {
+      let ageR = stdIncome(y0, s.age, s.size) / stdIncome(y0, a0, s.size);
+      if (ageR < 1 && keepsValue(s)) ageR = 1;
+      const skillR = s.age < 55 ? 1 + clamp(s.skill - 40, -30, 40) / 10000 : 1;
+      const rankR = s.onLadder && s.age < 60 ? rankFactor(s.rank, s.age, s.size) / rankFactor(s.rank, a0, s.size) : 1;
+      ch(s,'routine','income', Math.round(s.income * ageR * skillR * rankR) - s.income);
+    }
+    const back = s.tempCuts.filter(c => c.year === s.year);
+    if (back.length) {
+      back.forEach(c => ch(s, c.src, 'income', c.amount));
+      s.tempCuts = s.tempCuts.filter(c => c.year !== s.year);
+      L(s, "業績が持ち直し、削られていた賞与が戻った。", 'effect');
+    }
+    const eraR = stdIncome(s.year, s.age, s.size) / stdIncome(y0, s.age, s.size) * genderWage(s.gender, s.year) / genderWage(s.gender, y0);
+    ch(s,'era','income', Math.round(s.income * eraR) - s.income);
+  }
+  // 手取り率の低下は時代の影響
+  s.impact.era += Math.abs(Math.max(0, s.income) * (taxRate(s.year - 1) - taxRate(s.year)));
+
+  const era = ERA[s.year];
+  if (era) {
+    // 2027年以降は「確定した歴史」ではなく、想定されるシナリオ
+    if (era.event) L(s, `【${era.era}${s.year > 2026 ? '（想定）' : ''}】${era.event}`, 'event');
+    if (era.text) L(s, era.text);
+    if (era.effect) { const note = era.effect(s); if (note) L(s, `→ ${note}`, 'effect'); }
+  }
+  if (LIFE[s.age]) { const note = LIFE[s.age](s); if (note) L(s, note, 'event'); }
+  // 介護の終わり
+  const ending = s.careEnds.filter(c => c.year === s.year);
+  if (ending.length) {
+    ending.forEach(c => { if (c.h) ch(s, c.src, 'careHours', -c.h); });
+    s.careEnds = s.careEnds.filter(c => c.year !== s.year);
+    const withMsg = ending.find(c => c.msg);
+    if (withMsg) L(s, withMsg.msg, 'event');
+    else if (ending.some(c => c.h && !c.msg)) L(s, "長かった介護に、一区切りがついた。", 'event');
+  }
+  if (s.workRestore && s.workRestore.year === s.year) {
+    if (!s.retired && !s.onBreak) { ch(s, 'routine', 'workHours', s.workRestore.h); L(s, "時短勤務を終え、フルタイムに戻った。", 'effect'); }
+    s.workRestore = null;
+  }
+  if (s.onBreak && s.year >= s.breakUntil) reentry(s);
+  companyEvents(s);
+  layoffCheck(s);
+  careerEvents(s);
+  annualTick(s);
+  recordSeries(s);
+
+  if (era && era.boundary) s.queue.push({ kind: 'boundary' });
+  if (QUESTIONS[s.age]) s.queue.push({ kind: 'question', age: s.age, ...QUESTIONS[s.age] });
+  if (s.age === 30) s.queue.push({ kind: 'decision', dec: lifeDecision(s) });
+  const decFn = DECISIONS[s.year];
+  const dec = decFn && (!s.onBreak || s.year === 2026 || s.year === 2035) ? decFn(s) : null;
+  if (dec) { dec.year = s.year; dec.id = String(s.year); s.queue.push({ kind: 'decision', dec }); }
+
+  if (s.log.length === logStart && s.queue.length === 0) {
+    L(s, s.retired ? `${s.age}歳：穏やかな日々を過ごす。` : s.onBreak ? `${s.age}歳：子育てに追われる日々。` : `${s.age}歳：日々の業務を重ねる。`);
+  }
+  if (s.year >= END_YEAR) s.ended = true;
+}
+
+function annualTick(s) {
+  const st = s.stats;
+  const f = freeH(s);
+  st.freeSum += f; st.years++;
+  if (!s.retired) { st.incomeSum += Math.max(0, s.income); st.workYears++; }
+
+  // 余白とHP・自律度の連動
+  if (f <= 1) ch(s,'routine','hp',-4);
+  else if (f <= 3) ch(s,'routine','hp',-1);
+  else if (f >= 5) ch(s,'routine','hp',2);
+  if (s.age >= 55) ch(s,'routine','hp',-1);
+  if (f <= 1) ch(s,'routine','autonomy',-2);
+  else if (f >= 5) ch(s,'routine','autonomy',1);
+
+  st.hpMin = Math.min(st.hpMin, s.hp);
+  if (s.hp <= 0) {
+    s.hp = 30;
+    st.burnout++;
+    if (!s.retired) ch(s,'routine','income',-60);
+    ch(s,'routine','autonomy',-10);
+    L(s, s.retired ? "限界を超えて体調を崩した。（HP30%まで回復）" : "限界を超えて体調を崩し、休職した。（年収 -60万円 / HP30%で復帰）", 'warn');
+  } else if (s.hp < 30 && !s.lowWarned) {
+    s.lowWarned = true;
+    L(s, "心身の余力が30%を切った。このままでは選べる道が狭まる。", 'warn');
+  }
+  if (s.hp >= 40) s.lowWarned = false;
+
+  const th = takeHome(s);
+  st.lifeTakeHome += th;
+  const net = th - livingCost(s);
+  s.savings += net;
+  if (net < 0) st.deficitYears++;
+}
+
+// 育児で仕事を離れている間は、仕事の分岐は出ない（出産・境界線・暮らしの分岐は出る）
+const decisionValid = (s, dec) => !s.onBreak || ['life', '2026', '2035'].includes(dec.id || String(dec.year));
+
+/* ---------- ヘッドレス実行（パラレルワールド用） ---------- */
+function simulateWith(seed, startYear, chooser, gender) {
+  const s = newWorld(seed, startYear, gender);
+  let first = true;
+  while (!s.ended) {
+    if (!first) advance(s);
+    first = false;
+    while (s.queue.length) {
+      const item = s.queue.shift();
+      if (item.kind !== 'decision') continue;
+      const dec = item.dec;
+      if (!decisionValid(s, dec)) continue;
+      const enabled = dec.options.filter(o => !reqReason(s, o.req));
+      const opt = chooser(s, dec, enabled) || enabled[0] || dec.options[dec.options.length - 1];
+      applyChoice(s, dec, opt);
+    }
+  }
+  return s;
+}
+function simulate(seed, startYear, picks, override, gender) {
+  return simulateWith(seed, startYear, (s, dec, enabled) => {
+    const id = dec.id || String(dec.year);
+    if (override && override.id === id) return dec.options.find(o => o.key === override.key);
+    return enabled.find(o => o.key === picks[id]);
+  }, gender);
+}
+
+/* ---------- 反実仮想による寄与：時代・運・決断 ----------
+   比較の物差し：22〜52歳の30年間の実質手取り（2025年の賃金水準に換算）。
+   どの年に社会に出ても2050年までに52歳に達するので、同じ長さで比べられる。 */
+let WINDOW_END_AGE = 52;
+const windowEndFor = startYear => 22 + END_YEAR - Math.max(startYear, ERA_CMP_MAX);
+function realTakeHome(s) {
+  return Math.round(s.series.filter(p => p.age <= WINDOW_END_AGE).reduce((a, p) => a + p.takeHome / avgIdx(p.year), 0));
+}
+function windowStats(s) {
+  const pts = s.series.filter(p => p.age <= WINDOW_END_AGE);
+  return {
+    real: realTakeHome(s),
+    hpMin: Math.min(...pts.map(p => p.hp)),
+    avgFree: pts.reduce((a, p) => a + p.free, 0) / pts.length,
+    rank: s.stats.promotions.filter(p => p.year - s.startYear + 22 <= WINDOW_END_AGE).map(p => p.rank).pop() || ''
+  };
+}
+// 同じ「選び方」を別の時代に持ち込む：同じ年の分岐は同じ選択、なければ最も多く選んだ傾向（タグ）に沿う
+function styleChooser(choices) {
+  const picks = {}, tally = {};
+  choices.forEach(c => { picks[c.id] = c.key; tally[c.tag] = (tally[c.tag] || 0) + 1; });
+  const tags = Object.keys(tally).sort((a, b) => tally[b] - tally[a]);
+  return (s, dec, enabled) => enabled.find(o => o.key === picks[dec.id || String(dec.year)])
+    || tags.map(t => enabled.find(o => o.tag === t)).find(Boolean);
+}
+const stdev = a => { const m = a.reduce((x, y) => x + y, 0) / a.length; return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / a.length); };
+
+function attribution(world) {
+  const own = styleChooser(world.choices);
+  const picks = {}; world.choices.forEach(c => picks[c.id] = c.key);
+  // 時代：同じ運（乱数）・同じ選び方で、社会に出る年だけを変える
+  WINDOW_END_AGE = windowEndFor(world.startYear);
+  const eraMax = Math.max(ERA_CMP_MAX, world.startYear);
+  const eras = [];
+  for (let y = START_MIN; y <= eraMax; y++) {
+    const s = y === world.startYear ? world : simulateWith(world.seed, y, own, world.gender);
+    eras.push({ year: y, ...windowStats(s), s });
+  }
+  // 運：同じ年・同じ選び方で、乱数だけを変える
+  const luck = [];
+  for (let i = 1; i <= 30; i++) luck.push(realTakeHome(simulateWith((world.seed + i * 7919) >>> 0, world.startYear, own, world.gender)));
+  // 決断：同じ年・同じ運で、選び方だけをランダムに変える
+  const choice = [];
+  for (let i = 1; i <= 40; i++) {
+    choice.push(realTakeHome(simulateWith(world.seed, world.startYear, (s, dec, enabled) =>
+      enabled[Math.floor(rnd(world.seed + i, dec.year, 'policy') * enabled.length)], world.gender)));
+  }
+  const sd = { era: stdev(eras.map(e => e.real)), luck: stdev(luck), choice: stdev(choice) };
+  // 性別だけを入れ替えた自分
+  const otherGender = world.gender === '女性' ? '男性' : '女性';
+  const other = simulateWith(world.seed, world.startYear, own, otherGender);
+  return { eras, sd, ownReal: realTakeHome(world), otherGender, otherReal: realTakeHome(other), otherStats: windowStats(other) };
+}
+
+function metrics(s) {
+  return {
+    lifeTakeHome: s.stats.lifeTakeHome,
+    savings: s.savings,
+    avgFree: s.stats.freeSum / Math.max(1, s.stats.years),
+    hpMin: s.stats.hpMin,
+    autonomy: s.autonomy,
+    burnout: s.stats.burnout
+  };
+}
+/*ENGINE END*/
+
+/* ================= UI ================= */
+const SPEEDS = [{ ms: 2200, label: '×1' }, { ms: 1100, label: '×2' }, { ms: 450, label: '×5' }];
+let speedIdx = 0;
+function cycleSpeed() {
+  speedIdx = (speedIdx + 1) % SPEEDS.length;
+  $('btn-speed').innerText = `速度 ${SPEEDS[speedIdx].label}`;
+  if (ui.running && timer) scheduleNext();
+}
+let world = null;
+let lastEnding = null;
+let ui = { running: false, paused: false, finished: false, logCursor: 0 };
+let timer = null;
+let modalOnClose = null, modalOnClose2 = null;
+const $ = id => document.getElementById(id);
+
+/* ---------- セットアップ ---------- */
+function initSetup() {
+  const sel = $('start-year');
+  sel.innerHTML = '<option value="">ランダム</option>';
+  for (let y = START_MIN; y <= START_MAX; y++) sel.innerHTML += `<option value="${y}">${y}年</option>`;
+  updateYearHint();
+}
+function updateYearHint() {
+  const v = $('start-year').value;
+  if (!v) { $('year-hint').innerText = `${START_MIN}〜${START_MAX}年のどこかに、ランダムで生まれ落ちます。`; return; }
+  const y = Number(v), r = jobRatio(y);
+  const mood = r < 0.7 ? '厳しい買い手市場' : r < 1.0 ? 'やや厳しい就職環境' : r < 1.3 ? '落ち着いた就職環境' : '売り手市場';
+  const rk = RANKINGS[y];
+  const top = rk ? `\n人気企業 文系：${rk.bun.slice(0, 3).join('・')}／理系：${rk.ri.slice(0, 3).join('・')}` : '';
+  $('year-hint').innerText = `${y}年：${eraAt(y)}。有効求人倍率 約${r.toFixed(2)}倍（${mood}）。2050年に${22 + END_YEAR - y}歳。${top}`;
+}
+function startFromSetup() {
+  const v = $('start-year').value;
+  const year = v ? Number(v) : START_MIN + Math.floor(Math.random() * (START_MAX - START_MIN + 1));
+  const seed = (Math.random() * 4294967296) >>> 0;
+  const g = $('gender').value || (Math.random() < 0.5 ? '男性' : '女性');
+  $('setup').style.display = 'none';
+  begin(seed, year, g);
+}
+
+function begin(seed, year, gender) {
+  stopTimer();
+  world = newWorld(seed, year, gender);
+  ui = { running: false, paused: true, finished: false, logCursor: 0 };
+  $('log-container').innerHTML = '';
+  $('decision-box').style.display = 'none';
+  flushLog();
+  updateUI();
+  setRunButton("配属を確認中…", true);
+
+  const r = jobRatio(year);
+  const comment = r < 0.7 ? "厳しい買い手市場。多くの同世代が、望んだ職に就けなかった。"
+    : r < 1.0 ? "やや厳しい就職環境。選べる余地は多くなかった。"
+    : r < 1.3 ? "比較的落ち着いた就職環境だった。"
+    : "売り手市場。新卒が会社を選べる立場にあった。";
+  const sizeLabel = world.size === '非正規' ? '契約社員（非正規）' : world.industry.key === 'public' ? '正規職員' : `${world.size}企業`;
+  const rk = RANKINGS[year];
+  let rankText = '';
+  if (rk) {
+    const list = rk[world.field === '文系' ? 'bun' : 'ri'];
+    rankText = `\n\n${year}年卒 ${world.field}の人気企業（${RANK_SRC[rk.src]}）\n` +
+      list.slice(0, 5).map((c, i) => `${i + 1}. ${c}${world.companyRank === i + 1 ? '　← あなた' : ''}`).join('\n') +
+      (world.companyRank > 5 ? `\n…${world.companyRank}. ${list[world.companyRank - 1]}　← あなた` : '') +
+      (world.company ? '' : '\n憧れの企業群には届かなかった。');
+  }
+  const where = world.gaishi ? world.job : world.company ? `${world.job}（${world.industry.name}）` : `${world.industry.name}／${sizeLabel}`;
+  showModal("配属が決まりました",
+    `${year}年卒・${world.field}・${world.gender}\n${where}　初年度年収 ${world.income}万円（その年の大卒初任給ベース）\n\nこの年の有効求人倍率は約${r.toFixed(2)}倍。${comment}${rankText}\n\n※業界・規模・文理・入社先はランダム。求人倍率の低い年ほど、人気企業には届きにくく、非正規や中小企業になりやすくなります。`,
+    { btnText: "社会に出る", onClose: () => { ui.paused = false; if (processQueue()) return; startRun(); } });
+}
+
+/* ---------- 進行制御 ---------- */
+function setRunButton(text, disabled = false) { const b = $('btn-toggle-run'); b.innerText = text; b.disabled = disabled; }
+function stopTimer() { if (timer) { clearTimeout(timer); timer = null; } }
+function scheduleNext() { stopTimer(); timer = setTimeout(runLoop, SPEEDS[speedIdx].ms); }
+
+function startRun() { ui.running = true; setRunButton("一時停止"); runLoop(); }
+function toggleRun() {
+  if (ui.paused || ui.finished || !world) return;
+  if (ui.running) { ui.running = false; stopTimer(); setRunButton("人生を進める（自動進行）"); }
+  else startRun();
+}
+function pauseUI() { ui.running = false; ui.paused = true; stopTimer(); setRunButton("選択を待機中…", true); }
+function resumeUI() { ui.paused = false; ui.running = true; setRunButton("一時停止"); scheduleNext(); }
+
+function runLoop() {
+  timer = null;
+  if (!ui.running || ui.paused) return;
+  advance(world);
+  flushLog();
+  updateUI();
+  if (processQueue()) return;
+  if (world.ended) { finish(); return; }
+  scheduleNext();
+}
+
+function processQueue() {
+  while (world.queue.length) {
+    const item = world.queue.shift();
+    pauseUI();
+    if (item.kind === 'boundary') {
+      showModal("2026年：現在の境界線",
+        "ここまでが、私たちが実際に経験した歴史です。\n時代の追い風も、理不尽な向かい風も、あなたは受け止めながらここまで歩んできました。\n\nここから先（2027〜2050年）は、確定した人口動態と、予測されるAI・社会の波が押し寄せる未知の未来です。",
+        { btnText: "境界線を越える", onClose: continueAfterPause });
+      return true;
+    }
+    if (item.kind === 'question') { showQuestion(item); return true; }
+    if (item.kind === 'decision') { if (!decisionValid(world, item.dec)) continue; showDecision(item.dec); return true; }
+  }
+  return false;
+}
+function continueAfterPause() {
+  if (processQueue()) return;
+  if (world.ended) { finish(); return; }
+  resumeUI();
+}
+
+/* ---------- 決断・問い ---------- */
+function openBox(title, desc, isQuestion) {
+  const box = $('decision-box');
+  box.classList.toggle('question', !!isQuestion);
+  box.style.display = 'flex';
+  $('decision-title').innerText = title;
+  $('decision-desc').innerText = desc;
+  $('decision-buttons').innerHTML = '';
+  box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  return $('decision-buttons');
+}
+function closeBox() { $('decision-box').style.display = 'none'; }
+
+function showDecision(dec) {
+  const wrap = openBox(dec.title, dec.desc, false);
+  dec.options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.innerText = opt.text;
+    const reason = reqReason(world, opt.req);
+    if (reason) {
+      btn.disabled = true;
+      const r = document.createElement('span'); r.className = 'req'; r.innerText = reason; btn.appendChild(r);
+    }
+    btn.onclick = () => { applyChoice(world, dec, opt); closeBox(); flushLog(); updateUI(); continueAfterPause(); };
+    wrap.appendChild(btn);
+  });
+}
+
+function showQuestion(item) {
+  const wrap = openBox("静かな問い", item.q, true);
+  item.options.forEach(a => {
+    const btn = document.createElement('button');
+    btn.innerText = a;
+    btn.onclick = () => {
+      world.answers.push({ age: item.age, q: item.q, a });
+      world.log.push({ year: world.year, text: `問い：「${a}」と答えた。`, type: 'question' });
+      closeBox(); flushLog(); continueAfterPause();
+    };
+    wrap.appendChild(btn);
+  });
+}
+
+/* ---------- 表示 ---------- */
+function flushLog() {
+  const c = $('log-container');
+  while (ui.logCursor < world.log.length) {
+    const e = world.log[ui.logCursor++];
+    const div = document.createElement('div');
+    div.className = `log-item ${e.type}`;
+    div.innerHTML = `<span class="log-year">${e.year}年</span>${e.text}`;
+    c.appendChild(div);
+  }
+  c.scrollTop = c.scrollHeight;
+}
+
+function updateUI() {
+  const s = world;
+  $('display-year').innerText = `${s.year}年 (${s.age}歳)`;
+  $('display-job').innerText = s.job + (s.rank ? ` / ${s.rank}` : '');
+  $('display-era').innerText = eraAt(s.year);
+  $('display-macro').innerText = `有効求人倍率 ${jobRatio(s.year).toFixed(2)}倍${s.year >= 2026 ? '（仮定）' : ''} ／ 手取り率 ${Math.round(taxRate(s.year) * 100)}%`;
+
+  const pen = s.pension > 0 ? ` <span class="metric-sub">+年金${s.pension}万</span>` : '';
+  const bench = (s.retired || s.gaishi || !s.onLadder) ? '' : `<div class="metric-sub">同年代・同規模の${s.size === '非正規' ? '非正規' : '正社員'}平均 ${Math.round(stdIncome(s.year, s.age, s.size))}万</div>`;
+  $('val-income').innerHTML = `${s.income}万円${pen} <span class="metric-sub">(手取 ${takeHome(s)}万)</span>${bench}`;
+  const sv = $('val-savings'); sv.innerText = `${s.savings.toLocaleString()}万円`; sv.classList.toggle('neg', s.savings < 0);
+  const hp = $('val-hp'); hp.innerText = `${s.hp}%`; hp.classList.toggle('low', s.hp < 30);
+  const au = $('val-autonomy'); au.innerText = `${s.autonomy}`; au.classList.toggle('low', s.autonomy < 25);
+  $('val-skill').innerText = `${s.skill} / ${s.adaptability}`;
+  $('val-living').innerText = `${livingCost(s)}万円`;
+
+  const work = s.workHours, care = s.careHours;
+  const sleep = Math.max(0, Math.min(s.sleepHours, 24 - work - care));
+  const free = Math.max(0, 24 - work - care - sleep);
+  const pct = v => `${(v / 24) * 100}%`;
+  $('bar-work').style.width = pct(Math.min(work, 24));
+  $('bar-sleep').style.width = pct(sleep);
+  $('bar-care').style.width = pct(care);
+  $('bar-free').style.width = pct(free);
+  $('txt-work').innerText = `${work}h`;
+  $('txt-sleep').innerText = `${sleep}h`;
+  $('txt-care').innerText = `${care}h`;
+  $('txt-free').innerText = `${free}h`;
+}
+
+/* ---------- モーダル ---------- */
+function showModal(title, body, opts = {}) {
+  $('modal-title').innerText = title;
+  const b = $('modal-body');
+  if (opts.html) b.innerHTML = body; else b.innerText = body;
+  $('modal-btn').innerText = opts.btnText || "進む";
+  modalOnClose = opts.onClose || null;
+  const b2 = $('modal-btn2');
+  if (opts.btn2Text) { b2.style.display = 'block'; b2.innerText = opts.btn2Text; modalOnClose2 = opts.onClose2 || null; }
+  else { b2.style.display = 'none'; modalOnClose2 = null; }
+  $('modal').style.display = 'flex';
+  $('modal').querySelector('.modal-content').scrollTop = 0;
+}
+function closeModal() { $('modal').style.display = 'none'; const cb = modalOnClose; modalOnClose = null; if (cb) cb(); }
+function closeModal2() { $('modal').style.display = 'none'; const cb = modalOnClose2; modalOnClose2 = null; if (cb) cb(); }
+
+/* ---------- エンディング ---------- */
+const ARCHETYPES = {
+  adapt:  { name:"波乗り型",   lead:"時代の変化に先回りし続けた" },
+  stable: { name:"錨型",       lead:"揺れる時代の中で、足場を守り抜いた" },
+  earn:   { name:"積み上げ型", lead:"収入の柱を増やすことを優先した" },
+  care:   { name:"余白型",     lead:"時間と関係を守ることを選び続けた" },
+  mixed:  { name:"分岐型",     lead:"一つの軸に寄らず、その都度選び直した" }
+};
+
+function chartSVG(id, data, key, color, fmt, decisionYears) {
+  const W = 320, H = 92, pl = 4, pr = 4, pt = 6, pb = 16;
+  const xs = data.map(d => d.year), ys = data.map(d => d[key]);
+  const x0 = xs[0], x1 = xs[xs.length - 1];
+  const yMin = Math.min(0, ...ys), yMax = Math.max(...ys) * 1.08 || 1;
+  const X = x => pl + (x - x0) / Math.max(1, x1 - x0) * (W - pl - pr);
+  const Y = y => pt + (1 - (y - yMin) / (yMax - yMin)) * (H - pt - pb);
+  const pts = data.map(d => `${X(d.year).toFixed(1)},${Y(d[key]).toFixed(1)}`).join(' ');
+  let g = `<line x1="${pl}" x2="${W - pr}" y1="${Y(Math.max(yMin, 0))}" y2="${Y(Math.max(yMin, 0))}" stroke="#30363d" stroke-width="1"/>`;
+  if (2026 > x0 && 2026 < x1) g += `<line x1="${X(2026)}" x2="${X(2026)}" y1="${pt}" y2="${H - pb}" stroke="#6e7681" stroke-width="1" stroke-dasharray="3 3"/><text x="${X(2026) + 3}" y="${H - pb - 3}" font-size="8" fill="#8b949e">現在</text>`;
+  decisionYears.forEach(y => { const d = data.find(p => p.year === y); if (d) g += `<circle cx="${X(y)}" cy="${Y(d[key])}" r="3" fill="${color}" stroke="#161b22" stroke-width="2"/>`; });
+  g += `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  g += `<text x="${pl}" y="${H - 3}" font-size="9" fill="#8b949e">${x0}</text><text x="${W - pr}" y="${H - 3}" font-size="9" fill="#8b949e" text-anchor="end">${x1}</text>`;
+  g += `<line class="cross" x1="0" x2="0" y1="${pt}" y2="${H - pb}" stroke="#c9d1d9" stroke-width="1" visibility="hidden"/>`;
+  return `<svg id="${id}" viewBox="0 0 ${W} ${H}" data-x0="${x0}" data-x1="${x1}" data-pl="${pl}" data-pr="${pr}">${g}</svg>`;
+}
+
+const fmtMan = v => Math.abs(v) >= 10000 ? `${(v / 10000).toFixed(2)}億円` : `${Math.round(v).toLocaleString()}万円`;
+
+function eraChartSVG(eras, ownYear) {
+  const W = 320, H = 100, pl = 4, pr = 4, pt = 6, pb = 16;
+  const max = Math.max(...eras.map(e => e.real)) * 1.05;
+  const bw = (W - pl - pr) / eras.length;
+  let g = `<line x1="${pl}" x2="${W - pr}" y1="${H - pb}" y2="${H - pb}" stroke="#30363d"/>`;
+  eras.forEach((e, i) => {
+    const h = Math.max(1, e.real / max * (H - pt - pb));
+    const me = e.year === ownYear;
+    g += `<rect x="${(pl + i * bw + 1).toFixed(1)}" y="${(H - pb - h).toFixed(1)}" width="${(bw - 2).toFixed(1)}" height="${h.toFixed(1)}" rx="2" fill="${me ? '#e3b341' : '#bc8cff'}" opacity="${me ? 1 : 0.55}"><title>${e.year}年卒：${fmtMan(e.real)}</title></rect>`;
+  });
+  const ownI = eras.findIndex(e => e.year === ownYear);
+  g += `<text x="${pl}" y="${H - 3}" font-size="9" fill="#8b949e">${eras[0].year}</text><text x="${W - pr}" y="${H - 3}" font-size="9" fill="#8b949e" text-anchor="end">${eras[eras.length - 1].year}</text>`;
+  if (ownI > 2 && ownI < eras.length - 3) g += `<text x="${pl + ownI * bw + bw / 2}" y="${H - 3}" font-size="9" fill="#e3b341" text-anchor="middle">${ownYear}</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}">${g}</svg>`;
+}
+
+function attachChartHover(id, data, key, fmt) {
+  const svg = document.getElementById(id);
+  if (!svg) return;
+  const tip = svg.parentElement.querySelector('.tip');
+  const cross = svg.querySelector('.cross');
+  const x0 = +svg.dataset.x0, x1 = +svg.dataset.x1, pl = +svg.dataset.pl, pr = +svg.dataset.pr;
+  const move = ev => {
+    const rect = svg.getBoundingClientRect();
+    const vx = (ev.clientX - rect.left) / rect.width * 320;
+    const year = clamp(Math.round(x0 + (vx - pl) / (320 - pl - pr) * (x1 - x0)), x0, x1);
+    const d = data.find(p => p.year === year);
+    if (!d) return;
+    const px = pl + (year - x0) / Math.max(1, x1 - x0) * (320 - pl - pr);
+    cross.setAttribute('x1', px); cross.setAttribute('x2', px); cross.setAttribute('visibility', 'visible');
+    tip.style.display = 'block';
+    tip.innerText = `${year}年（${d.age}歳） ${fmt(d[key])}`;
+    const left = px / 320 * rect.width;
+    tip.style.left = `${Math.min(Math.max(0, left - tip.offsetWidth / 2), rect.width - tip.offsetWidth)}px`;
+  };
+  const leave = () => { tip.style.display = 'none'; cross.setAttribute('visibility', 'hidden'); };
+  svg.addEventListener('pointermove', move);
+  svg.addEventListener('pointerdown', move);
+  svg.addEventListener('pointerleave', leave);
+}
+
+function parallelWorlds() {
+  const picks = {};
+  world.choices.forEach(c => picks[c.id] = c.key);
+  const base = metrics(world);
+  const res = [];
+  world.choices.forEach(c => c.alts.forEach(a => {
+    const m = metrics(simulate(world.seed, world.startYear, picks, { id: c.id, key: a.key }, world.gender));
+    const diff = {
+      lifeTakeHome: m.lifeTakeHome - base.lifeTakeHome,
+      savings: m.savings - base.savings,
+      avgFree: m.avgFree - base.avgFree,
+      hpMin: m.hpMin - base.hpMin,
+      autonomy: m.autonomy - base.autonomy,
+      burnout: m.burnout - base.burnout
+    };
+    const dist = Math.abs(diff.lifeTakeHome) * 0.15 + Math.abs(diff.savings) * 0.3 + Math.abs(diff.avgFree) * 60 + Math.abs(diff.hpMin) * 3 + Math.abs(diff.autonomy) * 3 + Math.abs(diff.burnout) * 60;
+    res.push({ c, a, diff, dist });
+  }));
+  res.sort((p, q) => q.dist - p.dist);
+  const out = [], used = new Set();
+  for (const r of res) { if (used.has(r.c.id)) continue; used.add(r.c.id); out.push(r); if (out.length >= 3) break; }
+  return out;
+}
+
+function diffLines(d) {
+  const gain = [], loss = [];
+  const add = (cond, better, text) => { if (cond) (better ? gain : loss).push(text); };
+  const sgn = v => (v >= 0 ? '+' : '') + v;
+  add(Math.abs(d.lifeTakeHome) >= 50, d.lifeTakeHome > 0, `生涯手取り ${sgn(Math.round(d.lifeTakeHome))}万円`);
+  add(Math.abs(d.savings) >= 50, d.savings > 0, `最終資産 ${sgn(Math.round(d.savings))}万円`);
+  add(Math.abs(d.avgFree) >= 0.2, d.avgFree > 0, `平均の余白 ${sgn(Math.round(d.avgFree * 10) / 10)}h/日`);
+  add(Math.abs(d.hpMin) >= 3, d.hpMin > 0, `最低HP ${sgn(d.hpMin)}%`);
+  add(Math.abs(d.autonomy) >= 3, d.autonomy > 0, `自律度 ${sgn(d.autonomy)}`);
+  add(d.burnout !== 0, d.burnout < 0, `休職 ${sgn(d.burnout)}回`);
+  return { gain, loss };
+}
+
+function finish() {
+  ui.finished = true; ui.running = false;
+  stopTimer();
+  setRunButton("人生を完了しました", true);
+  const s = world, st = s.stats;
+  L(s, `${s.age}歳。2050年に辿り着いた。`, 'event');
+  flushLog();
+
+  const tally = { stable: 0, adapt: 0, earn: 0, care: 0 };
+  s.choices.forEach(c => tally[c.tag]++);
+  const max = Math.max(...Object.values(tally));
+  const tops = Object.keys(tally).filter(k => tally[k] === max);
+  const type = ARCHETYPES[tops.length === 1 && max > 0 ? tops[0] : 'mixed'];
+  const years = END_YEAR - s.startYear;
+
+  const at = attribution(s);
+  const sdTot = at.sd.era + at.sd.luck + at.sd.choice || 1;
+  const pE = Math.round(at.sd.era / sdTot * 100), pL = Math.round(at.sd.luck / sdTot * 100), pC = 100 - pE - pL;
+  const top = [['era', pE], ['luck', pL], ['choice', pC]].sort((a, b) => b[1] - a[1])[0][0];
+  const headline = {
+    era: `数字の上では、あなたの${WINDOW_END_AGE - 22}年を最も大きく揺らしたのは「いつ社会に出たか」でした。`,
+    luck: `数字の上では、あなたの${WINDOW_END_AGE - 22}年を最も大きく揺らしたのは、配属や出来事という「運」でした。`,
+    choice: `数字の上では、あなたの${WINDOW_END_AGE - 22}年を最も大きく揺らしたのは、あなた自身の決断でした。`
+  }[top];
+  lastEnding = { typeName: type.name, pE, pL, pC };
+  const byReal = [...at.eras].sort((a, b) => b.real - a.real);
+  const best = byReal[0], worst = byReal[byReal.length - 1];
+  const eraSpread = `同じ選び方でも、社会に出る年が違うだけで、${WINDOW_END_AGE - 22}年の実質手取りは最大${fmtMan(best.real - worst.real)}違いました（最も多いのは${best.year}年卒、最も少ないのは${worst.year}年卒）。`;
+  const showYears = [...new Set([1991, 1999, 2009, 2020, s.startYear, best.year, worst.year])].sort((a, b) => a - b);
+  const eraRows = showYears.map(y => {
+    const e = at.eras.find(x => x.year === y);
+    const me = y === s.startYear;
+    return `<div${me ? ' style="color:#fff;font-weight:600"' : ''}><span class="log-year">${y}年卒</span>${fmtMan(e.real)}・最低HP ${e.hpMin}%${e.rank ? '・' + e.rank : ''}<span class="note" style="display:inline;margin-left:6px">${me ? 'あなた' : eraAt(y)}${y === best.year ? '・最多' : y === worst.year ? '・最少' : ''}</span></div>`;
+  }).join('');
+
+  const decYears = s.choices.map(c => c.year);
+  const charts = [
+    { id:'ch-th', key:'takeHome', label:'手取り年収', color:'#58a6ff', fmt: v => `${v}万円` },
+    { id:'ch-hp', key:'hp', label:'精神・身体余力 (HP)', color:'#bc8cff', fmt: v => `${v}%` },
+    { id:'ch-free', key:'free', label:'1日の余白', color:'#3fb950', fmt: v => `${v}h` }
+  ];
+  const chartHtml = charts.map(c => {
+    const last = s.series[s.series.length - 1][c.key];
+    return `<div class="chart"><div class="chart-title"><span>${c.label}</span><b>${c.fmt(last)}</b></div><div class="tip"></div>${chartSVG(c.id, s.series, c.key, c.color, c.fmt, decYears)}</div>`;
+  }).join('');
+
+  const pws = parallelWorlds();
+  const pwHtml = pws.length ? pws.map(p => {
+    const { gain, loss } = diffLines(p.diff);
+    const lockNote = p.a.locked ? '<div class="note">当時は条件を満たせず、選べなかった道</div>' : '';
+    const body = (gain.length || loss.length)
+      ? `${gain.length ? `<div class="pw-row"><span class="lbl">手に入ったもの</span>${gain.join('・')}</div>` : ''}${loss.length ? `<div class="pw-row"><span class="lbl">失ったもの</span>${loss.join('・')}</div>` : ''}`
+      : '<div class="pw-row">ほとんど何も変わらなかった。</div>';
+    return `<div class="pw"><div class="pw-title">もし${p.c.year}年に「${p.a.short}」なら</div>${lockNote}${body}</div>`;
+  }).join('') + '<div class="note">同じ時代の波（同じ乱数）のまま、その1つの選択だけを入れ替えて再計算しています。正解・不正解ではなく、選んだ道の輪郭として。</div>'
+    : '<div class="note">分岐点に出会わない人生でした。</div>';
+
+  const answersHtml = s.answers.length
+    ? `<div class="end-section"><div class="end-h">あの日の答え</div><div class="end-list">${s.answers.map(a => `<div><span class="log-year">${a.age}歳</span>${a.q.replace(/^\d+歳。/, '')} →「${a.a}」</div>`).join('')}</div></div>` : '';
+
+  const html = `
+    <div class="end-section">
+      <div class="end-type">あなたは「${type.name}」</div>
+      <div>${type.lead}${years}年でした。</div>
+    </div>
+    <div class="end-section">
+      <div class="end-h">あなたを形作ったもの</div>
+      <div class="attr-bar"><div style="width:${pE}%;background:var(--era)"></div><div style="width:${pL}%;background:var(--gold)"></div><div style="width:${pC}%;background:var(--choice)"></div></div>
+      <div class="attr-legend"><span><span class="dot" style="background:var(--era)"></span>時代 ${pE}%</span><span><span class="dot" style="background:var(--gold)"></span>運 ${pL}%</span><span><span class="dot" style="background:var(--choice)"></span>決断 ${pC}%</span></div>
+      <div style="margin-top:6px">${headline}</div>
+      <div class="note">物差しは22〜${WINDOW_END_AGE}歳の${WINDOW_END_AGE - 22}年間の手取り合計（2025年の賃金水準に換算）。「時代」は社会に出る年だけを1990〜${Math.max(ERA_CMP_MAX, s.startYear)}年で変えた場合、「運」は乱数（配属・出来事）だけを30通り変えた場合、「決断」は選び方だけを40通り変えた場合の、結果のばらつき（標準偏差）の比です。</div>
+    </div>
+    <div class="end-section">
+      <div class="end-h">別の時代のあなた（同じ選び方・同じ運で、社会に出る年だけを変えたら）</div>
+      <div class="chart"><div class="chart-title"><span>22〜${WINDOW_END_AGE}歳の実質手取り</span><b>あなた ${fmtMan(at.ownReal)}</b></div><div class="tip"></div>${eraChartSVG(at.eras, s.startYear)}</div>
+      <div class="end-list" style="margin-top:6px">${eraRows}</div>
+      <div style="margin-top:8px">${eraSpread}</div>
+      <div style="margin-top:8px">同じ選び方・同じ運で、性別だけが${at.otherGender}だったら：${fmtMan(at.otherReal)}（あなたより${at.otherReal >= at.ownReal ? '+' : '−'}${fmtMan(Math.abs(at.otherReal - at.ownReal))}）${at.otherStats.rank ? '・' + at.otherStats.rank : ''}</div>
+    </div>
+    <div class="end-section">
+      <div class="end-h">軌跡（点は決断した年）</div>
+      ${chartHtml}
+    </div>
+    <div class="end-section">
+      <div class="end-grid">
+        <div class="end-stat"><div class="k">生涯手取り</div><div class="v">${st.lifeTakeHome.toLocaleString()}万円</div></div>
+        <div class="end-stat"><div class="k">最終資産</div><div class="v ${s.savings < 0 ? 'neg' : ''}">${s.savings.toLocaleString()}万円</div></div>
+        <div class="end-stat"><div class="k">平均の余白</div><div class="v">${(st.freeSum / Math.max(1, st.years)).toFixed(1)}h / 日</div></div>
+        <div class="end-stat"><div class="k">最終の自律度</div><div class="v">${s.autonomy}</div></div>
+        <div class="end-stat"><div class="k">赤字の年 / 休職</div><div class="v">${st.deficitYears}年 / ${st.burnout}回</div></div>
+        <div class="end-stat"><div class="k">リストラ</div><div class="v">${st.layoffs}回</div></div>
+        <div class="end-stat"><div class="k">最高年収</div><div class="v">${st.peakIncome.toLocaleString()}万円</div></div>
+        <div class="end-stat"><div class="k">最高の役職</div><div class="v">${st.promotions.length ? st.promotions[st.promotions.length - 1].rank : '—'}</div></div>
+      </div>
+      ${st.over1000 > 0 ? `<div class="note" style="margin-top:8px">年収1,000万円（2025年の賃金水準換算）を超えた年：${st.over1000}年。給与所得者のうち年収1,000万円超は、男性で約1割、女性で約2%（国税庁「民間給与実態統計調査」令和6年分）。</div>` : ''}
+    </div>
+    ${answersHtml}
+    <div class="end-section">
+      <div class="end-h">選んだ道</div>
+      <div class="end-list">${s.choices.map(c => `<div><span class="log-year">${c.year}年</span>${c.short}（${TAGS[c.tag]}）</div>`).join('') || '<div>—</div>'}</div>
+    </div>
+    <div class="end-section">
+      <div class="end-h">パラレルワールド</div>
+      ${pwHtml}
+    </div>
+    <div class="end-question">あなたのキャリアを形作ったのは、あなた自身の決断でしたか？<br>それとも、生きた時代そのものでしたか？</div>
+    <div class="end-section" style="margin-top:16px">
+      <div class="end-h">一行メモリアル</div>
+      <input id="memorial" class="memorial" maxlength="40" placeholder="この人生に、一言だけ残すなら（40字まで）">
+      <button class="secondary" style="width:100%" onclick="saveShareCard()">シェアカードを画像で保存</button>
+      <img id="card-img" class="card-img" alt="シェアカード">
+      <button class="link-btn" style="width:100%;margin-top:6px" onclick="showSources()">データと仮定について</button>
+    </div>
+  `;
+
+  const seed = s.seed, year = s.startYear, gender = s.gender;
+  showModal(`${s.startYear}年卒、2050年に${s.age}歳`, html, {
+    html: true,
+    btnText: "同じ時代と運で、もう一度",
+    onClose: () => begin(seed, year, gender),
+    btn2Text: "新しい人生を始める",
+    onClose2: () => { $('setup').style.display = 'flex'; updateYearHint(); }
+  });
+  charts.forEach(c => attachChartHover(c.id, s.series, c.key, c.fmt));
+}
+
+function showSources() { $('sources').style.display = 'flex'; $('sources').querySelector('.modal-content').scrollTop = 0; }
+
+/* ---------- シェアカード ---------- */
+function wrapText(ctx, text, maxW) {
+  const lines = []; let line = '';
+  for (const ch of text) {
+    if (ch === '\n') { lines.push(line); line = ''; continue; }
+    if (ctx.measureText(line + ch).width > maxW && line) { lines.push(line); line = ch; } else line += ch;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+function drawShareCard() {
+  const s = world, c = lastEnding;
+  const W = 1080, H = 1350, P = 80;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  const font = (px, w = 400) => `${w} ${px}px "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif`;
+  ctx.fillStyle = '#0d1117'; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = '#30363d'; ctx.lineWidth = 2; ctx.strokeRect(30, 30, W - 60, H - 60);
+  let y = P + 20;
+  ctx.fillStyle = '#58a6ff'; ctx.font = font(30, 700); ctx.fillText('PATHFINDER', P, y);
+  ctx.fillStyle = '#8b949e'; ctx.font = font(26); ctx.fillText('時代の波とキャリアの軌跡', P + 250, y);
+  y += 90;
+  ctx.fillStyle = '#c9d1d9'; ctx.font = font(40, 600);
+  ctx.fillText(`${s.startYear}年卒・${s.field}・${s.gender}　2050年に${s.age}歳`, P, y);
+  y += 110;
+  ctx.fillStyle = '#e3b341'; ctx.font = font(84, 800); ctx.fillText(`「${c.typeName}」`, P - 20, y);
+  y += 90;
+  // 寄与率の帯
+  ctx.fillStyle = '#8b949e'; ctx.font = font(28); ctx.fillText('あなたを形作ったもの', P, y);
+  y += 26;
+  const bw = W - 2 * P, parts = [['時代', c.pE, '#bc8cff'], ['運', c.pL, '#e3b341'], ['決断', c.pC, '#58a6ff']];
+  let x = P;
+  parts.forEach(([, pct, col]) => { const w = bw * pct / 100; ctx.fillStyle = col; ctx.fillRect(x, y, Math.max(0, w - 4), 34); x += w; });
+  y += 80; x = P;
+  ctx.font = font(32, 600);
+  parts.forEach(([lab, pct, col]) => { ctx.fillStyle = col; ctx.fillText(`${lab} ${pct}%`, x, y); x += 300; });
+  // 数字
+  y += 90;
+  const stats = [['生涯手取り', fmtMan(s.stats.lifeTakeHome)], ['最高年収', `${s.stats.peakIncome.toLocaleString()}万円`], ['平均の余白', `${(s.stats.freeSum / Math.max(1, s.stats.years)).toFixed(1)}h/日`]];
+  stats.forEach(([k, v], i) => {
+    const sx = P + i * (bw / 3);
+    ctx.fillStyle = '#8b949e'; ctx.font = font(26); ctx.fillText(k, sx, y);
+    ctx.fillStyle = '#ffffff'; ctx.font = font(42, 700); ctx.fillText(v, sx, y + 56);
+  });
+  // 選んだ道
+  y += 140;
+  ctx.fillStyle = '#8b949e'; ctx.font = font(28); ctx.fillText('選んだ道', P, y);
+  ctx.font = font(30); ctx.fillStyle = '#c9d1d9';
+  s.choices.slice(0, 5).forEach((ch, i) => ctx.fillText(`${ch.year}　${ch.short}`, P, y + 52 + i * 46));
+  y += 52 + Math.min(5, s.choices.length) * 46 + 30;
+  // 一行メモリアル
+  const memo = ($('memorial') && $('memorial').value.trim()) || '';
+  if (memo) {
+    ctx.fillStyle = '#ffffff'; ctx.font = font(44, 700);
+    wrapText(ctx, `“${memo}”`, bw).slice(0, 3).forEach((ln, i) => ctx.fillText(ln, P, y + i * 60));
+    y += Math.min(3, wrapText(ctx, `“${memo}”`, bw).length) * 60 + 20;
+  }
+  // 問い
+  ctx.fillStyle = '#bc8cff'; ctx.font = font(30);
+  const q = 'あなたのキャリアを形作ったのは、あなた自身の決断でしたか？それとも、生きた時代そのものでしたか？';
+  const ql = wrapText(ctx, q, bw);
+  const qy = H - P - 20 - (ql.length - 1) * 44;
+  ql.forEach((ln, i) => ctx.fillText(ln, P, qy + i * 44));
+  return cv;
+}
+function saveShareCard() {
+  const cv = drawShareCard();
+  const img = $('card-img');
+  img.src = cv.toDataURL('image/png'); img.style.display = 'block';
+  cv.toBlob(async blob => {
+    if (!blob) return;
+    const file = new File([blob], 'pathfinder.png', { type: 'image/png' });
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Pathfinder' }); return; }
+    } catch (e) { /* 共有がキャンセルされたら下のダウンロードへ */ }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'pathfinder.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }, 'image/png');
+}
+
+/* ---------- 初期化 ---------- */
+initSetup();
+</script>
+
+</body>
+</html>
